@@ -24,6 +24,16 @@ None of these are photos or imitations. The sky is drawn by macOS's own weather 
 
 Then choose your location in the welcome window, and the sky outside appears on your desktop.
 
+## Live sky
+
+The sky also moves, just like in the Weather app: rain falls, snow drifts, clouds roll by and stars twinkle. LiveSky plays Apple's animation in a window behind your desktop icons, on top of the wallpaper, which keeps updating as before.
+
+- **Live Sky** in the menu turns the animation on or off.
+- Below it you set a frame-rate limit for when your Mac is plugged in and for when it runs on battery: Still, 12, 24, 30 or 60 fps (60 and 12 to begin with). The weather decides the actual rate: 24 fps for clear skies, 30 for clouds and fog, 60 for rain, snow and storms. Low Power Mode uses the battery setting.
+- The animation pauses by itself while windows cover most of the desktop, while the screen is locked and while the Mac is hot, so most of the time it costs nothing. While it moves it uses about as much power as having the Weather app open: a few tenths of a watt on a MacBook Pro with M3 Pro.
+- To tell whether the desktop is covered, LiveSky reads the positions and sizes of the windows on screen, not their titles or contents. This needs no permission.
+- The lock screen shows the still wallpaper. In Activity Monitor the animation appears as LiveSky Renderer, one per display.
+
 ## Compatibility
 
 LiveSky needs a Mac with Apple silicon.
