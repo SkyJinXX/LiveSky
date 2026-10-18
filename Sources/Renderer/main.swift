@@ -13,20 +13,16 @@ private func log(_ message: String) { fputs(message + "\n", stderr) }
 private struct MetadataResponse { let pointer: UnsafeRawPointer; let state: UInt }
 private typealias MetadataAccessor = @convention(thin) (UInt) -> MetadataResponse
 
-private struct LocationIdentifierLayout {
-    var id: String
-    var name: String
-    var coordinate: CLLocationCoordinate2D
-}
-private struct LocationLayout {
-    var identifier: LocationIdentifierLayout
-    var timeZone: TimeZone
-    var lastRefreshDate: Date?
-    var searchTitle: String?
-    var searchSubtitle: String?
-    var preciseName: String?
-    var secondaryName: String?
-}
+// Room for one WeatherCore.Location (144 bytes on macOS 15, 176 on 26 and 27). WeatherCore's own
+// initializer fills it in, so the layout is never mirrored here; the bridge checks that it fits.
+private typealias Words8 = (UInt64, UInt64, UInt64, UInt64, UInt64, UInt64, UInt64, UInt64)
+private struct LocationStorage { var words: (Words8, Words8, Words8, Words8, Words8, Words8, Words8, Words8) }
+// Location.init(id:name:timeZone:coordinate:lastRefreshDate:searchTitle:searchSubtitle:preciseName:secondaryName:).
+// Initializers take their arguments at +1, hence `consuming`; the Location is returned indirectly.
+private typealias LocationInitializer = @convention(thin) (
+    consuming String, consuming String, consuming TimeZone, CLLocationCoordinate2D, consuming Date?,
+    consuming String?, consuming String?, consuming String?, consuming String?
+) -> LocationStorage
 
 struct RenderRequest {
     var output = ""
@@ -137,24 +133,25 @@ final class AppDelegate: NSObject, UIApplicationDelegate {
         }
         let byte = withUnsafeBytes(of: &condition) { $0[0] }
         let emptyArray = unsafeBitCast([String](), to: UnsafeRawPointer.self)
-        guard let zone = TimeZone(identifier: request.timeZone) else { livesky_fail("ARGUMENTS", "invalid time zone \(request.timeZone)") }
+        guard var zone = TimeZone(identifier: request.timeZone) else { livesky_fail("ARGUMENTS", "invalid time zone \(request.timeZone)") }
         let city = request.city.isEmpty ? "LiveSky" : request.city
-        var location = LocationLayout(
-            identifier: LocationIdentifierLayout(id: "\(request.latitude),\(request.longitude)", name: city,
-                                                 coordinate: .init(latitude: request.latitude, longitude: request.longitude)),
-            timeZone: zone, lastRefreshDate: request.date, searchTitle: city, searchSubtitle: nil,
-            preciseName: city, secondaryName: nil
-        )
-        guard MemoryLayout<LocationLayout>.size == 144,
-              MemoryLayout<LocationIdentifierLayout>.size == 48 else {
-            livesky_fail("SIZE MISMATCH", "local Location layout is \(MemoryLayout<LocationLayout>.size) bytes, expected 144")
+        guard let initializer = weather_frame_load(MemoryLayout<LocationStorage>.size) else {
+            livesky_fail("MISSING SYMBOL", "WeatherCore.Location.init")
         }
-        withUnsafePointer(to: &location) { pointer in
-            weather_frame_prepare(byte, emptyArray, request.date.timeIntervalSinceReferenceDate,
-                                  request.cloudCover, request.windSpeed,
-                                  UnsafeRawPointer(pointer), Double(request.width), Double(request.height),
-                                  request.sunrise?.timeIntervalSinceReferenceDate ?? .nan,
-                                  request.sunset?.timeIntervalSinceReferenceDate ?? .nan)
+        livesky_stage("locating")
+        let makeLocation = unsafeBitCast(initializer, to: LocationInitializer.self)
+        var location = makeLocation("\(request.latitude),\(request.longitude)", city, zone,
+                                    CLLocationCoordinate2D(latitude: request.latitude, longitude: request.longitude),
+                                    request.date, city, nil, city, nil)
+        withUnsafePointer(to: &location) { locationPointer in
+            withUnsafePointer(to: &zone) { zonePointer in
+                weather_frame_prepare(byte, emptyArray, request.date.timeIntervalSinceReferenceDate,
+                                      request.cloudCover, request.windSpeed,
+                                      UnsafeRawPointer(locationPointer), UnsafeRawPointer(zonePointer),
+                                      request.latitude, request.longitude, Double(request.width), Double(request.height),
+                                      request.sunrise?.timeIntervalSinceReferenceDate ?? .nan,
+                                      request.sunset?.timeIntervalSinceReferenceDate ?? .nan)
+            }
         }
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.25) { self.checkLoaded() }
         return true
