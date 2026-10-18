@@ -58,17 +58,12 @@ codesign --force --sign - --timestamp=none "$app"
 codesign --verify --deep --strict "$app"
 
 echo "==> dist/LiveSky.zip"
-# The zip unpacks to a LiveSky folder holding the app, both READMEs and the license.
-staging="$build/zip/LiveSky"
-rm -rf "$build/zip"
-mkdir -p "$staging" dist
-ditto "$app" "$staging/LiveSky.app"
-cp README.md README.zh-CN.md LICENSE "$staging/"
+# The zip holds only LiveSky.app, so unzipping it (Safari does this by itself) gives the app.
+mkdir -p dist
 rm -f dist/LiveSky.zip
 # No extended attributes: they only carry this Mac's com.apple.provenance and would add a
 # __MACOSX folder for other unzip tools. The code signature does not depend on them.
-ditto -c -k --norsrc --noextattr --keepParent "$staging" dist/LiveSky.zip
-rm -rf "$build/zip"
+ditto -c -k --norsrc --noextattr --keepParent "$app" dist/LiveSky.zip
 
 echo "built $app"
 echo "packed $root/dist/LiveSky.zip ($(du -h dist/LiveSky.zip | cut -f1 | tr -d ' '))"
