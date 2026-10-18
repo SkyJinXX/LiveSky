@@ -41,7 +41,9 @@ final class LocationService: NSObject, CLLocationManagerDelegate {
         return try await withCheckedThrowingContinuation { continuation in
             waiting.append(continuation)
             if waiting.count == 1 {
-                manager.requestLocation()
+                // Before the permission prompt is answered, a location request only fails with
+                // "denied"; locationManagerDidChangeAuthorization asks once the user has decided.
+                if authorization != .notDetermined { manager.requestLocation() }
                 let work = DispatchWorkItem { [weak self] in
                     MainActor.assumeIsolated {
                         self?.finish(.failure(LiveSkyError.location(L("error.location.timeout"))))
@@ -88,6 +90,8 @@ final class LocationService: NSObject, CLLocationManagerDelegate {
         let code = (error as? CLError)?.code
         MainActor.assumeIsolated {
             if code == .denied {
+                // Still waiting for the user's answer: the authorization callback settles it.
+                guard authorization != .notDetermined else { return }
                 finish(.failure(LiveSkyError.location(L("error.location.denied"))))
             } else {
                 finish(.failure(LiveSkyError.location(L("error.location.unavailable"))))

@@ -6,11 +6,10 @@ extension LiveSkyController {
     var statusLines: [String] {
         guard settings.setupComplete else { return [L("status.setup")] }
         var lines: [String] = []
-        if let failure = state.failure {
+        if state.failure != nil {
+            // Short and plain here; the failing check and renderer output go to Export Diagnostics.
             lines.append(L("status.incompatible"))
-            lines.append(Self.describe(failure))
-            lines.append(SystemInfo.versionDescription)
-            lines.append(L("status.waitingForRetry"))
+            lines.append(L("status.incompatible.detail"))
             if settings.paused { lines.append(state.restored ? L("status.restored") : L("status.paused")) }
             return lines
         }
@@ -41,12 +40,10 @@ extension LiveSkyController {
         if settings.paused {
             lines.append(state.restored ? L("status.restored") : L("status.paused"))
         }
-        if !isVerifiedBuild, state.lastSuccessBuild == SystemInfo.osBuild, state.lastSuccess != nil {
-            lines.append(L("status.unverified", SystemInfo.versionDescription))
-        }
         return lines
     }
 
+    /// One readable sentence about a renderer failure, for the diagnostics report.
     static func describe(_ failure: FailureRecord) -> String {
         switch failure.kind {
         case "check": return L("failure.check", "\(failure.check): \(failure.detail)")

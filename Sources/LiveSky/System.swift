@@ -118,7 +118,7 @@ enum Diagnostics {
             "Generated: \(iso.string(from: Date()))",
             "App: \(SystemInfo.appVersion) at \(Bundle.main.bundlePath)",
             "System: \(SystemInfo.versionDescription), \(SystemInfo.model), Apple silicon: \(SystemInfo.isAppleSilicon)",
-            "Verified build: \(SystemInfo.isVerified ? "yes" : "no") (verified: \(SystemInfo.verifiedBuilds.sorted().joined(separator: ", ")))",
+            "Verified build: \(controller.isVerifiedBuild ? "yes" : "no") (verified: \(SystemInfo.verifiedBuilds.sorted().joined(separator: ", ")))",
             "Language: \(Bundle.main.preferredLocalizations.first ?? "?")",
             "Location mode: \(settings.locationMode?.rawValue ?? "not chosen"), interval: \(settings.intervalMinutes) min, paused: \(settings.paused)",
             "Displays: \(Displays.signature(Displays.current()))",
@@ -134,6 +134,7 @@ enum Diagnostics {
             lines += [
                 "",
                 "== Renderer failure ==",
+                "Summary: \(LiveSkyController.describe(failure))",
                 "When: \(iso.string(from: failure.date))",
                 "System: macOS \(failure.osVersion) (\(failure.osBuild))",
                 "Kind: \(failure.kind)",

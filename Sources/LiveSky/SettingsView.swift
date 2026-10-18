@@ -139,7 +139,9 @@ struct SettingsView: View {
                         Text(L("settings.attribution"))
                         Link("Open-Meteo", destination: URL(string: "https://open-meteo.com")!)
                     }
-                    Text(L("settings.version", SystemInfo.appVersion, SystemInfo.versionDescription))
+                    // Builds outside the verified list are only noted here, not in the menu.
+                    Text(L(controller.isVerifiedBuild ? "settings.version" : "settings.version.unverified",
+                           SystemInfo.appVersion, SystemInfo.versionDescription))
                 }
                 .font(.caption)
                 .foregroundColor(.secondary)

@@ -11,14 +11,13 @@
 /* Status */
 "status.setup" = "Finish setup to start";
 "status.incompatible" = "This macOS version isn't supported yet";
-"status.waitingForRetry" = "Wallpaper left unchanged. Press Retry, or wait for a macOS update";
+"status.incompatible.detail" = "Your wallpaper stays as it is. Retry, or export diagnostics to report the problem.";
 "status.updating" = "Updating…";
 "status.lastUpdate" = "Updated at %@";
 "status.notYet" = "Not updated yet";
 "status.nextRetry" = "Trying again at %@";
 "status.paused" = "Updates paused";
 "status.restored" = "Original wallpaper restored; updates paused";
-"status.unverified" = "Working on %@, which hasn't been verified before";
 
 /* Renderer failures */
 "failure.check" = "Compatibility check failed: %@";
@@ -78,6 +77,7 @@
 "settings.loginItem.failed" = "Couldn't turn on launch at login.";
 "settings.attribution" = "Weather data by";
 "settings.version" = "LiveSky %1$@ · %2$@";
+"settings.version.unverified" = "LiveSky %1$@ · %2$@ · not yet verified";
 "settings.start" = "Start";
 "settings.done" = "Done";
 

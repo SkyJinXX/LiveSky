@@ -62,12 +62,13 @@ WeatherUI is a private Apple framework, so any macOS update can change it. LiveS
 - LiveSky then checks the picture: the expected size, not transparent, not a single flat colour.
 - If anything fails, **your wallpaper is left unchanged**, the menu shows *This macOS version isn't supported yet*, and **Export Diagnostics…** saves a report (macOS build, the failing check, the renderer's output) you can send along with a bug report.
 - After a failure LiveSky does not try again on the same macOS build until you press **Retry**. After a macOS update it tries again by itself, at most once a day.
-- When it works on a build that hasn't been verified yet, the menu says so.
+- When it works on a build that hasn't been verified yet, it runs quietly as usual; only the version line at the bottom of the settings window says "not yet verified".
 
 ## Good to know
 
 - The weather comes from Open-Meteo, not Apple Weather, so the sky can occasionally differ from what the Weather app shows.
 - Frames are rendered at 1826 × 1344 points and scaled to each display, because larger renders lose the sun, moon and light effects. On 4K and 5K displays the sky is slightly softer than native resolution.
+- LiveSky has no Developer ID signature, so macOS treats each new version as a new app: after you replace LiveSky with a newer version, it asks for location permission again (only if you use *Use my location*).
 - Restore puts back the picture file macOS reports for each display. Dynamic and Aerial wallpapers may need to be chosen again in System Settings.
 - Other apps that change the wallpaper on a schedule will fight with LiveSky. Turn them off while you use LiveSky.
 
