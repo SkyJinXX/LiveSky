@@ -118,6 +118,7 @@
 "status.live.paused" = "动态天空：桌面被窗口挡住，已暂停";
 "status.live.hot" = "动态天空：Mac 温度较高，已暂停";
 "status.live.failed" = "动态天空出错已停止，下次更新时再试";
+"status.live.unavailable" = "动态天空在这个 macOS 版本上暂不可用";
 "settings.live" = "动态天空";
 "settings.live.enabled" = "让桌面图标后面的天空动起来";
 "settings.live.onPower" = "插电时";

@@ -10,6 +10,7 @@ import Darwin
 // window, captures it to a PNG, prints one LIVESKY_STATUS line and exits.
 // With --live it keeps that sky running instead, behind the desktop icons of one display, until
 // LiveSky closes its standard input. Commands on standard input: "fps <n>", "pause", "resume".
+// A sky that can't be paced fails with a PACING status line instead of appearing.
 
 private func log(_ message: String) { fputs(message + "\n", stderr) }
 private struct MetadataResponse { let pointer: UnsafeRawPointer; let state: UInt }
@@ -248,11 +249,18 @@ final class AppDelegate: NSObject, UIApplicationDelegate {
 
     // MARK: Live
 
-    /// Fades the window in once WeatherUI draws, then reports the sky as live.
+    /// Fades the window in once WeatherUI draws, then reports the sky as live. Capping and pausing
+    /// hold WeatherUI before -[CAMetalLayer nextDrawable]; a sky that takes no drawable there
+    /// within eight seconds could be neither, so it is never shown.
     func waitForFirstFrames(checks: Int = 0) {
-        guard livesky_live_frames() >= 3 || checks >= 80 else {
+        let frames = livesky_live_frames()
+        guard frames >= 3 || checks >= 80 else {
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) { self.waitForFirstFrames(checks: checks + 1) }
             return
+        }
+        log("LIVE \(frames) frames after \(Double(checks) / 10)s")
+        guard frames > 0 else {
+            livesky_fail("PACING", "WeatherUI took no drawable through -[CAMetalLayer nextDrawable] within 8 seconds, so its frame rate could not be capped or paused")
         }
         livesky_stage("live")
         livesky_live_fade(1, 0.8)

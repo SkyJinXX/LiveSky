@@ -118,6 +118,7 @@
 "status.live.paused" = "Live sky paused while windows cover the desktop";
 "status.live.hot" = "Live sky paused while the Mac is hot";
 "status.live.failed" = "Live sky stopped after errors; it tries again at the next update";
+"status.live.unavailable" = "Live sky isn't available on this macOS version";
 "settings.live" = "Live Sky";
 "settings.live.enabled" = "Animate the sky behind the desktop icons";
 "settings.live.onPower" = "On power adapter";

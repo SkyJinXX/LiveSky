@@ -20,7 +20,9 @@ extension LiveCap {
 /// It runs while it is switched on, the ceiling for the current power source isn't "still" and the
 /// controller allows it (set up, not paused, compatible, displays awake). A renderer pauses while
 /// its desktop is mostly covered, the screen is locked or the screen saver runs; everything stops
-/// while the Mac is hot. After three failures in a row it waits for the next scene.
+/// while the Mac is hot. After three failures in a row it waits for the next scene. A renderer
+/// that fails one of its checks (WeatherUI can't be paced, say) ends it until LiveSky quits, since
+/// every renderer would fail the same way on this macOS version.
 @MainActor
 final class LiveLayer {
     enum Power: String { case adapter, battery, lowPower }
@@ -37,6 +39,8 @@ final class LiveLayer {
     private(set) var power = Power.adapter
     private(set) var failure: String?
     private(set) var gaveUp = false
+    /// A renderer failed a check: no live sky until LiveSky starts again. The wallpaper carries on.
+    private(set) var unavailable = false
     private var displays: [Display] = []
     private var allowed = false
     private var renderers: [String: LiveRenderer] = [:]
@@ -83,7 +87,7 @@ final class LiveLayer {
 
     /// A new wallpaper: the live sky follows it, fading each display over to the new scene.
     func show(_ scene: LiveScene, on displays: [Display]) {
-        if scene != self.scene {
+        if scene != self.scene, !unavailable {
             failures = 0
             gaveUp = false
             failure = nil
@@ -116,6 +120,7 @@ final class LiveLayer {
     /// One line for the menu, or nil when the other status lines already say enough.
     var statusLine: String? {
         guard settings.liveEnabled, allowed, scene != nil else { return nil }
+        if unavailable { return L("status.live.unavailable") }
         if gaveUp { return L("status.live.failed") }
         if isHot { return L("status.live.hot") }
         if cap == .still { return L("status.live.still.\(power.rawValue)") }
@@ -138,6 +143,7 @@ final class LiveLayer {
             "screenLocked": screenLocked,
             "screenSaver": screenSaverRunning,
             "gaveUp": gaveUp,
+            "unavailable": unavailable,
             "failures": failures,
             "failure": failure ?? "",
             "scene": scene.map { "\($0.weather.condition) at \(iso.string(from: $0.date))" } ?? "",
@@ -159,6 +165,7 @@ final class LiveLayer {
         let states = renderers.values.map { "\($0.displayName) \($0.isLive ? ($0.isPaused ? "paused" : "live") : "starting")" }
         if !states.isEmpty { line += " (\(states.joined(separator: ", ")))" }
         if isHot { line += ", hot" }
+        if unavailable { line += ", unavailable on this macOS version until LiveSky restarts" }
         if let failure { line += "; last failure: \(failure)\(gaveUp ? " (stopped until the next update)" : "")" }
         return line
     }
@@ -169,7 +176,7 @@ final class LiveLayer {
         retry?.cancel()
         retry = nil
         let cap = self.cap
-        guard allowed, let scene, cap != .still, !isHot, !gaveUp, !displays.isEmpty else {
+        guard allowed, let scene, cap != .still, !isHot, !gaveUp, !unavailable, !displays.isEmpty else {
             if !renderers.isEmpty || !outgoing.isEmpty {
                 Log.info("live sky stopped (\(stopReason))")
                 stopAll()
@@ -219,6 +226,7 @@ final class LiveLayer {
     private var stopReason: String {
         if !settings.liveEnabled { return "switched off" }
         if !allowed { return "not allowed now" }
+        if unavailable { return "not available on this macOS version" }
         if gaveUp { return "too many failures" }
         if isHot { return "the Mac is hot" }
         if cap == .still { return "still on \(power.rawValue)" }
@@ -264,7 +272,20 @@ final class LiveLayer {
         }
         updateActivity()
         guard !renderer.wasStopped else { return }
+        if let check = renderer.failedCheck {
+            makeUnavailable("renderer \(renderer.pid) on \(renderer.displayName) failed \(check)", details: renderer.recentOutput)
+            return
+        }
         fail("renderer \(renderer.pid) on \(renderer.displayName) exited (\(reason))", details: renderer.recentOutput)
+    }
+
+    /// A failed check (no pacing through nextDrawable, a changed WeatherUI) is not worth retrying:
+    /// later scenes would fail it too. The other renderers stop and the wallpaper stays still.
+    private func makeUnavailable(_ message: String, details: String) {
+        unavailable = true
+        failure = message
+        Log.error("live sky: \(message); it stays off until LiveSky restarts" + (details.isEmpty ? "" : "\n" + details))
+        reconcile()
     }
 
     private func fail(_ message: String, details: String = "") {
@@ -452,12 +473,16 @@ final class LiveRenderer {
     private(set) var isPaused = false
     private(set) var framesPerSecond: Double?
     private(set) var wasStopped = false
+    /// The check the renderer reported failing, as "PACING: <detail>".
+    private(set) var failedCheck: String?
     var onLive: ((LiveRenderer) -> Void)?
     var onExit: ((LiveRenderer, String) -> Void)?
 
     private let process = Process()
     private var input: FileHandle?
     private var output: [String] = []
+    private var exitReason: String?
+    private var outputClosed = false
 
     var pid: Int32 { process.processIdentifier }
     /// The renderer's last lines, for the log when it fails.
@@ -482,18 +507,19 @@ final class LiveRenderer {
         process.standardInput = inputPipe
         process.standardOutput = outputPipe
         process.standardError = errorPipe
-        read(outputPipe)
-        read(errorPipe)
         // Holds the renderer until its process has exited, so the exit is always reported.
         process.terminationHandler = { process in
             let reason = process.terminationReason == .uncaughtSignal
                 ? "signal \(process.terminationStatus)" : "exit \(process.terminationStatus)"
             DispatchQueue.main.async {
-                MainActor.assumeIsolated { self.exited(reason) }
+                MainActor.assumeIsolated { self.terminated(reason) }
             }
         }
         try process.run()
         input = inputPipe.fileHandleForWriting
+        // Read only once the renderer runs: after a failed launch nothing would close the pipes.
+        read(outputPipe) { self.closedOutput() }
+        read(errorPipe)
     }
 
     func setPaused(_ paused: Bool) {
@@ -532,12 +558,16 @@ final class LiveRenderer {
         }
     }
 
-    private func read(_ pipe: Pipe) {
+    /// `closed` runs on the main queue after the last of the pipe's lines.
+    private func read(_ pipe: Pipe, closed: @escaping @MainActor () -> Void = {}) {
         let buffer = LineBuffer()
         pipe.fileHandleForReading.readabilityHandler = { [weak self] handle in
             let data = handle.availableData
             guard !data.isEmpty else {
                 handle.readabilityHandler = nil
+                DispatchQueue.main.async {
+                    MainActor.assumeIsolated { closed() }
+                }
                 return
             }
             let lines = buffer.append(data)
@@ -555,17 +585,27 @@ final class LiveRenderer {
             }
             output.append(line)
             if output.count > 60 { output.removeFirst(output.count - 60) }
-            if line.hasPrefix("LIVESKY_STATUS "), !isLive,
-               Self.object(line.dropFirst("LIVESKY_STATUS ".count))?["status"] as? String == "live" {
+            guard line.hasPrefix("LIVESKY_STATUS "), let status = Self.object(line.dropFirst("LIVESKY_STATUS ".count)) else { continue }
+            if status["status"] as? String == "live", !isLive {
                 isLive = true
                 onLive?(self)
+            } else if status["status"] as? String == "fail" {
+                failedCheck = "\(status["check"] as? String ?? "UNKNOWN"): \(status["detail"] as? String ?? "")"
             }
         }
     }
 
-    private func exited(_ reason: String) {
+    /// The exit is reported once the output has been read to its end too, so that a failed check,
+    /// printed just before the renderer exits, is known by then.
+    private func terminated(_ reason: String) {
         input = nil
-        onExit?(self, reason)
+        exitReason = reason
+        if outputClosed { onExit?(self, reason) }
+    }
+
+    private func closedOutput() {
+        outputClosed = true
+        if let exitReason { onExit?(self, exitReason) }
     }
 
     private static func object(_ json: Substring) -> [String: Any]? {
