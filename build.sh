@@ -58,12 +58,12 @@ codesign --force --sign - --timestamp=none "$app"
 codesign --verify --deep --strict "$app"
 
 echo "==> dist/LiveSky.zip"
-# The zip unpacks to a LiveSky folder holding the app and both READMEs.
+# The zip unpacks to a LiveSky folder holding the app, both READMEs and the license.
 staging="$build/zip/LiveSky"
 rm -rf "$build/zip"
 mkdir -p "$staging" dist
 ditto "$app" "$staging/LiveSky.app"
-cp README.md README.zh-CN.md "$staging/"
+cp README.md README.zh-CN.md LICENSE "$staging/"
 rm -f dist/LiveSky.zip
 ditto -c -k --sequesterRsrc --keepParent "$staging" dist/LiveSky.zip
 rm -rf "$build/zip"

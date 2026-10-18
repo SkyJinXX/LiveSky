@@ -14,7 +14,7 @@ The sky is not a photo or an imitation. LiveSky asks macOS's own weather rendere
 
 ## Install
 
-1. Download `LiveSky.zip` and double-click it to unzip (Safari usually unzips it for you). You get a `LiveSky` folder with the app and this README.
+1. Download `LiveSky.zip` from the [Releases page](https://github.com/SkyJinXX/LiveSky/releases) and double-click it to unzip (Safari usually unzips it for you). You get a `LiveSky` folder with the app and this README.
 2. **Drag `LiveSky.app` into the Applications folder.** macOS runs downloaded apps that were not moved from a temporary, read-only location, and LiveSky cannot work from there.
 3. Double-click LiveSky. Because LiveSky is not signed with an Apple Developer ID, macOS says *Apple could not verify "LiveSky" is free of malware*. Click **Done**.
 4. Open **System Settings → Privacy & Security** and scroll down to **Security**. Next to *"LiveSky" was blocked to protect your Mac*, click **Open Anyway**, then confirm with **Open Anyway** and your password or Touch ID.
@@ -65,6 +65,10 @@ WeatherUI is a private Apple framework, so any macOS update can change it. LiveS
 - When it works on a build that hasn't been verified yet, it runs quietly as usual; only the version line at the bottom of the settings window says "not yet verified".
 - macOS 26.6.2 and 27.0.1 have been tested in virtual machines: every check passes and the sky's colours match macOS 15 pixel for pixel. A virtual machine can't draw WeatherUI's moon, sun and clouds, so those haven't been seen on a real Mac with macOS 26 or 27 yet, and the settings window still says "not yet verified" there.
 
+## Reporting problems
+
+Open an issue at [github.com/SkyJinXX/LiveSky/issues](https://github.com/SkyJinXX/LiveSky/issues). If the menu says *This macOS version isn't supported yet*, attach the file from **Export Diagnostics…**: it lists your macOS build, the failing check, the renderer's output and LiveSky's recent log. The log can mention your city and paths in your home folder, so look it over before you post it. Reports from real Macs on macOS 26 and 27 are especially welcome.
+
 ## Good to know
 
 - The weather comes from Open-Meteo, not Apple Weather, so the sky can occasionally differ from what the Weather app shows.
@@ -97,3 +101,7 @@ It writes `build/LiveSky.app` and `dist/LiveSky.zip`, ad-hoc signed.
 | `tools` | Verification tools: on-screen wallpaper check, image diff, focus watcher, icon generator |
 
 `LiveSky.app/Contents/MacOS/LiveSky --ctl help` lists debug commands that drive the running app (update, pause, restore, simulated failures and more).
+
+## License
+
+LiveSky is released under the [MIT License](LICENSE). The sky is drawn on your Mac by Apple's WeatherUI framework; LiveSky contains no Apple code or artwork. Weather data by [Open-Meteo.com](https://open-meteo.com), licensed under [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/).

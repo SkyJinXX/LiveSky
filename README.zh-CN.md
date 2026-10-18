@@ -14,7 +14,7 @@ LiveSky 让 Mac 的桌面壁纸和“天气”App 里的天空保持一致：同
 
 ## 安装
 
-1. 下载 `LiveSky.zip`，双击解压（Safari 通常会自动解压），得到一个装有 App 和说明文件的 `LiveSky` 文件夹。
+1. 从 [Releases 页面](https://github.com/SkyJinXX/LiveSky/releases) 下载 `LiveSky.zip`，双击解压（Safari 通常会自动解压），得到一个装有 App 和说明文件的 `LiveSky` 文件夹。
 2. **把 `LiveSky.app` 拖到“应用程序”文件夹。** 没有移动过的下载 App 会被 macOS 放在临时的只读位置运行，LiveSky 在那里无法工作。
 3. 双击打开 LiveSky。由于 LiveSky 没有使用 Apple 开发者 ID 签名，macOS 会提示“Apple 无法验证‘LiveSky’是否包含……恶意软件”。点“完成”。
 4. 打开 **系统设置 → 隐私与安全性**，向下滚动到“安全性”。在“已阻止‘LiveSky’以保护 Mac”旁边点 **仍要打开**，在弹出的对话框中再点 **仍要打开**，并输入密码或使用触控 ID。
@@ -65,6 +65,10 @@ WeatherUI 是苹果的私有框架，任何一次系统更新都可能改变它�
 - 在尚未验证的系统版本上能正常运行时，LiveSky 照常安静工作，只在设置窗口底部的版本信息旁注明“尚未验证”。
 - macOS 26.6.2 和 27.0.1 已在虚拟机里测试过：所有检查都通过，天空的颜色与 macOS 15 逐像素一致。虚拟机画不出 WeatherUI 的月亮、太阳和云，所以这些还没有在装有 macOS 26 或 27 的真机上看到过，设置窗口在这两个版本上也仍然注明“尚未验证”。
 
+## 反馈问题
+
+请到 [github.com/SkyJinXX/LiveSky/issues](https://github.com/SkyJinXX/LiveSky/issues) 提交问题。如果菜单显示“此系统版本暂不兼容”，请附上 **导出诊断信息…** 生成的文件，里面有系统版本号、未通过的检查、渲染组件的输出和 LiveSky 最近的日志。日志里可能出现你的城市名和个人文件夹里的路径，公开发布前请先看一遍。特别欢迎在装有 macOS 26 或 27 的真机上测试后反馈。
+
 ## 须知
 
 - 天气数据来自 Open-Meteo，而不是 Apple 天气，所以天空偶尔会和“天气”App 显示的不同。
@@ -97,3 +101,7 @@ WeatherUI 是苹果的私有框架，任何一次系统更新都可能改变它�
 | `tools` | 验证工具：屏上壁纸核对、图片比对、焦点监视、图标生成 |
 
 `LiveSky.app/Contents/MacOS/LiveSky --ctl help` 列出可以驱动正在运行的 LiveSky 的调试命令（更新、暂停、恢复、模拟失败等）。
+
+## 许可证
+
+LiveSky 以 [MIT 许可证](LICENSE) 发布。天空由你 Mac 上苹果的 WeatherUI 框架绘制，LiveSky 本身不包含任何苹果的代码或美术素材。天气数据来自 [Open-Meteo.com](https://open-meteo.com)，采用 [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/) 许可。
