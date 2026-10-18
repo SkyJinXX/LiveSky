@@ -2,106 +2,58 @@
 
 [English](README.md)
 
-LiveSky 让 Mac 的桌面壁纸和“天气”App 里的天空保持一致：同样的时间段、同样的天气、同样的月相。它常驻在菜单栏，在后台安静地更新壁纸。
+**把 Mac 的壁纸变成一扇窗。**
 
-天空不是照片，也不是仿制品。LiveSky 调用 macOS 自带的天气渲染（“天气”App 背后的 WeatherUI 框架）为你的位置画出一帧画面，再把它设为每块显示器、每个桌面空间的壁纸。
+LiveSky 让你的壁纸和所在地的真实天空同步。清晨还是黄昏，晴天还是下雨，满月还是月牙——窗外的天空是什么样，你的桌面就是什么样。
 
-## 系统要求
+<p align="center">
+  <img src="docs/day.jpg" width="49%" alt="云后的太阳">
+  <img src="docs/sunset.jpg" width="49%" alt="黄昏和月牙">
+  <img src="docs/night.jpg" width="49%" alt="晴朗夜空中的月亮和星星">
+  <img src="docs/rain.jpg" width="49%" alt="雨天">
+</p>
 
-- 搭载 Apple 芯片的 Mac。
-- macOS 15 Sequoia、macOS 26 Tahoe 或 macOS 27。已在 macOS 15.7.7（24G720）上验证；macOS 26 和 27 目前只在虚拟机里测试过。其他版本也会尝试运行，发现不匹配时会安全停止（见[其他 macOS 版本](#其他-macos-版本)）。
-- 需要联网获取天气数据。
+这些画面不是照片，也不是仿制品，而是 macOS 自带的天气渲染引擎画的，和“天气”App 用的是同一套。LiveSky 常驻菜单栏，在后台安静地更新，每块显示器、每个桌面空间都会同步。
 
 ## 安装
 
-1. 从 [Releases 页面](https://github.com/SkyJinXX/LiveSky/releases) 下载 `LiveSky.zip`，双击解压（Safari 通常会自动解压），得到一个装有 App 和说明文件的 `LiveSky` 文件夹。
-2. **把 `LiveSky.app` 拖到“应用程序”文件夹。** 没有移动过的下载 App 会被 macOS 放在临时的只读位置运行，LiveSky 在那里无法工作。
-3. 双击打开 LiveSky。由于 LiveSky 没有使用 Apple 开发者 ID 签名，macOS 会提示“Apple 无法验证‘LiveSky’是否包含……恶意软件”。点“完成”。
-4. 打开 **系统设置 → 隐私与安全性**，向下滚动到“安全性”。在“已阻止‘LiveSky’以保护 Mac”旁边点 **仍要打开**，在弹出的对话框中再点 **仍要打开**，并输入密码或使用触控 ID。
+1. 从 [Releases](https://github.com/SkyJinXX/LiveSky/releases) 下载 `LiveSky.zip` 并解压。
+2. 把 `LiveSky.app` 拖进“应用程序”文件夹。直接在“下载”文件夹里打开是无法运行的。
+3. 打开 LiveSky。因为 LiveSky 没有 Apple 开发者 ID 签名，macOS 会提示无法验证这个 App，点“完成”。
+4. 打开 **系统设置 → 隐私与安全性**，往下滚动，点 LiveSky 旁边的 **仍要打开**，再确认一次。
 
-这一步只需要做一次。从 macOS 15 起，按住 Control 点按 App 再选“打开”已经不能跳过这一步。
+之后在欢迎窗口里选好位置，窗外的天空就会出现在你的桌面上。
 
-## 第一次打开
+## 兼容性
 
-欢迎窗口会请你选择天气的位置：
+需要搭载 Apple 芯片的 Mac。
 
-- **使用系统定位（大致位置）**：macOS 会询问一次是否允许 LiveSky 使用定位。
-- **手动选择城市**：输入城市名，从列表中选择。
+| 系统 | 状态 |
+| --- | --- |
+| macOS 15 Sequoia | ✅ 可用（真机测试：MacBook Pro M3 Pro，macOS 15.7.7） |
+| macOS 26 Tahoe | ⚠️ 只在虚拟机里测试过（26.6.2） |
+| macOS 27 | ⚠️ 只在虚拟机里测试过（27.0.1） |
 
-还可以选择更新频率（5、10、15、30 或 60 分钟，默认 15 分钟），以及是否登录时启动（默认开启）。点 **开始使用** 后，LiveSky 会先记下每块显示器当前的壁纸，再设置第一张天空。macOS 可能会通知你 LiveSky 已添加为登录项。
+在虚拟机里所有检查都能通过，天空颜色也和 macOS 15 一致，但虚拟机画不出太阳、月亮和云。如果你的真机装的是 macOS 26 或 27，欢迎[提个 Issue](https://github.com/SkyJinXX/LiveSky/issues) 说说效果。
 
-## 菜单
-
-点菜单栏里的天气图标：
-
-- 顶部是状态：地点、天气、温度和上次更新时间；出问题时显示原因。
-- **立即更新**：马上获取天气并重新绘制天空。
-- **暂停** / **继续**：停止或恢复自动更新。
-- **恢复原壁纸**：把使用 LiveSky 之前的壁纸放回所有桌面空间，并暂停更新。选“继续”可重新开始。
-- **设置…**：修改位置、更新频率和登录时启动。
-- **退出**：退出 LiveSky，当前的天空会继续留作壁纸。
-
-Mac 唤醒后、接入或调整显示器时，LiveSky 也会立即更新；显示器睡眠时跳过更新。渲染时屏幕上不会出现任何窗口。
-
-找不到图标？Bartender 等菜单栏管理工具会隐藏新出现的图标；带刘海的 MacBook 上，图标也可能被刘海挡住。再次双击 LiveSky.app 即可打开设置。
-
-## 隐私与权限
-
-- **LiveSky 唯一会申请的权限是定位，而且是可选的。** 只有选择“使用系统定位”时才会申请，并且只请求大致精度。手动选择城市不需要任何权限。
-- **天气数据来自 [Open-Meteo](https://open-meteo.com)**（免费，无需账号）。LiveSky 会把你所在位置或所选城市的坐标发送给 Open-Meteo；搜索城市时，会把你输入的文字发送给 Open-Meteo 的地名查询服务。
-- 使用系统定位时，菜单里显示的城市名由 Apple 的地理编码服务解析。
-- 除此之外不会有数据离开你的 Mac，没有任何统计分析。
-- LiveSky 的文件保存在 `~/Library/Application Support/LiveSky`。如果 macOS 不接受登录项，LiveSky 会改用 `~/Library/LaunchAgents/local.livesky.LiveSky.plist`。
-- 你允许打开 LiveSky 之后，它会去掉自身内置渲染组件上的下载隔离标记，这样 macOS 不会为这个组件再弹一次提示。
-
-## 其他 macOS 版本
-
-WeatherUI 是苹果的私有框架，任何一次系统更新都可能改变它。LiveSky 的设计是出错时保证安全：
-
-- 渲染组件在独立进程里运行。写入任何内存之前，它会检查需要的 WeatherUI 函数是否都存在，再按名字找到要填写的每个字段，并核对字段的类型。字段只是换了位置时（macOS 26 和 27 就是这样），它能找到新位置；如果某个类型多了或少了字段，或者字段的类型变了，渲染组件就会停下。
-- 渲染完成后，LiveSky 还会检查图片：尺寸正确、不透明、不是单一纯色。
-- 任何一步失败，**壁纸都保持不变**，菜单显示“此系统版本暂不兼容”，并可以 **导出诊断信息…**（包括系统版本号、未通过的检查和渲染组件的输出），方便反馈问题。
-- 失败后，在同一个系统版本上，除非你点 **重试**，LiveSky 不会再自动尝试；系统更新后会自动重试，但每天最多一次。
-- 在尚未验证的系统版本上能正常运行时，LiveSky 照常安静工作，只在设置窗口底部的版本信息旁注明“尚未验证”。
-- macOS 26.6.2 和 27.0.1 已在虚拟机里测试过：所有检查都通过，天空的颜色与 macOS 15 逐像素一致。虚拟机画不出 WeatherUI 的月亮、太阳和云，所以这些还没有在装有 macOS 26 或 27 的真机上看到过，设置窗口在这两个版本上也仍然注明“尚未验证”。
-
-## 反馈问题
-
-请到 [github.com/SkyJinXX/LiveSky/issues](https://github.com/SkyJinXX/LiveSky/issues) 提交问题。如果菜单显示“此系统版本暂不兼容”，请附上 **导出诊断信息…** 生成的文件，里面有系统版本号、未通过的检查、渲染组件的输出和 LiveSky 最近的日志。日志里可能出现你的城市名和个人文件夹里的路径，公开发布前请先看一遍。特别欢迎在装有 macOS 26 或 27 的真机上测试后反馈。
-
-## 须知
-
-- 天气数据来自 Open-Meteo，而不是 Apple 天气，所以天空偶尔会和“天气”App 显示的不同。
-- 画面按 1826 × 1344 点渲染，再缩放到每块显示器，因为更大的渲染会丢失太阳、月亮和光效。在 4K、5K 显示器上，天空会比原生分辨率略柔和。
-- LiveSky 没有开发者 ID 签名，macOS 会把每个新版本当作新的 App：换成新版本后，会再询问一次定位权限（仅在使用系统定位时）。
-- “恢复原壁纸”放回的是 macOS 报告的每块显示器的图片文件。动态壁纸和航拍壁纸可能需要在系统设置中重新选择。
-- 其他定时更换壁纸的 App 会和 LiveSky 互相覆盖，使用 LiveSky 时请关闭它们。
-
-## 卸载
-
-1. 如需换回原来的壁纸，先选 **恢复原壁纸**。
-2. 在 LiveSky 设置中关闭 **登录时启动**，然后选 **退出**。
-3. 删除 LiveSky.app 和文件夹 `~/Library/Application Support/LiveSky`。
+LiveSky 依赖苹果的私有框架，其他系统版本或以后的系统更新可能会让它失效。遇到这种情况，它不会动你的壁纸，只会在菜单里提示；提 Issue 时请附上菜单里 **导出诊断信息…** 生成的报告。
 
 ## 从源码构建
 
-需要安装 Xcode（用到 Mac Catalyst SDK）。运行：
+需要安装 Xcode。
 
 ```bash
+git clone https://github.com/SkyJinXX/LiveSky.git
+cd LiveSky
 ./build.sh
 ```
 
-会生成 `build/LiveSky.app` 和 `dist/LiveSky.zip`，均为 ad-hoc 签名。
-
-| 路径 | 内容 |
-| --- | --- |
-| `Sources/LiveSky` | 菜单栏 App：定时、Open-Meteo、定位、合成、设置壁纸、设置窗口 |
-| `Sources/Renderer` | `LiveSkyRenderer.app`，带 WeatherUI 调用桥的 Mac Catalyst 渲染组件（arm64） |
-| `Resources` | Info.plist、英文和简体中文文案、图标 |
-| `tools` | 验证工具：屏上壁纸核对、图片比对、焦点监视、图标生成 |
-
-`LiveSky.app/Contents/MacOS/LiveSky --ctl help` 列出可以驱动正在运行的 LiveSky 的调试命令（更新、暂停、恢复、模拟失败等）。
+生成的 App 在 `build/LiveSky.app`。
 
 ## 许可证
 
-LiveSky 以 [MIT 许可证](LICENSE) 发布。天空由你 Mac 上苹果的 WeatherUI 框架绘制，LiveSky 本身不包含任何苹果的代码或美术素材。天气数据来自 [Open-Meteo.com](https://open-meteo.com)，采用 [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/) 许可。
+[MIT](LICENSE)。天空由你 Mac 上苹果的 WeatherUI 框架绘制，LiveSky 不包含任何苹果的代码或美术素材。天气数据来自 [Open-Meteo.com](https://open-meteo.com)（[CC BY 4.0](https://creativecommons.org/licenses/by/4.0/)）。
+
+---
+
+如果你也喜欢桌面上的这扇窗，欢迎点个 ⭐ Star，让更多人看到它。
