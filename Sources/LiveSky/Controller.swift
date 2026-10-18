@@ -27,6 +27,7 @@ final class LiveSkyController: ObservableObject {
     let location = LocationService()
     let wallpapers = WallpaperManager()
     private let renderer = RendererRunner()
+    let live = LiveLayer()
     private var timer: Timer?
     private var pendingWork: [String: DispatchWorkItem] = [:]
     private var observers: [NSObjectProtocol] = []
@@ -47,6 +48,7 @@ final class LiveSkyController: ObservableObject {
         locationAuthorization = location.authorization
         location.onAuthorizationChange = { [weak self] in self?.authorizationChanged() }
         currentPlaceName = state.lastWeather?.placeName
+        live.onChange = { [weak self] in self?.objectWillChange.send() }
     }
 
     var isVerifiedBuild: Bool { SystemInfo.isVerified && !settings.debug.pretendUnverified }
@@ -56,20 +58,24 @@ final class LiveSkyController: ObservableObject {
     func start() {
         observeSystem()
         displaysAsleep = Displays.anyAsleep
+        live.start(settings: settings)
         if settings.setupComplete {
             applyLoginItem(onLaunch: true)
             if settings.paused {
                 Log.info("started paused")
             } else {
+                showLastSceneIfFresh()
                 requestUpdate(.launch, after: 2)
             }
         }
+        refreshLive()
         Log.info("LiveSky \(SystemInfo.appVersion) started on \(SystemInfo.versionDescription), verified: \(SystemInfo.isVerified)")
     }
 
     func shutdown() {
         generation += 1
         renderer.cancel()
+        live.stopAll()
         save()
     }
 
@@ -83,6 +89,7 @@ final class LiveSkyController: ObservableObject {
         settings.setupComplete = true
         settings.paused = false
         saveSettings()
+        refreshLive()
         applyLoginItem()
         if mode == .system { location.requestAuthorization() }
         Log.info("setup complete: \(mode.rawValue), every \(intervalMinutes) min")
@@ -116,6 +123,22 @@ final class LiveSkyController: ObservableObject {
         settings.launchAtLogin = enabled
         saveSettings()
         applyLoginItem()
+    }
+
+    func setLiveEnabled(_ enabled: Bool) {
+        guard settings.liveEnabled != enabled else { return }
+        settings.liveEnabled = enabled
+        saveSettings()
+        Log.info("live sky switched \(enabled ? "on" : "off")")
+        live.update(settings: settings)
+    }
+
+    func setLiveCap(_ cap: LiveCap, onBattery: Bool) {
+        guard (onBattery ? settings.liveCapOnBattery : settings.liveCapOnPower) != cap else { return }
+        if onBattery { settings.liveCapOnBattery = cap } else { settings.liveCapOnPower = cap }
+        saveSettings()
+        Log.info("live sky ceiling \(onBattery ? "on battery" : "on power adapter"): \(cap.rawValue == 0 ? "still" : "\(cap.rawValue) fps")")
+        live.update(settings: settings)
     }
 
     /// Registers or removes the login item. On launch it only acts when the app was moved since
@@ -154,6 +177,7 @@ final class LiveSkyController: ObservableObject {
     func clearFailureForTesting() {
         state.failure = nil
         save()
+        refreshLive()
     }
     func retry() { requestUpdate(.retry) }
 
@@ -162,6 +186,7 @@ final class LiveSkyController: ObservableObject {
         settings.paused = true
         saveSettings()
         cancelInFlight()
+        refreshLive()
         notice = nil
         Log.info("paused")
     }
@@ -174,6 +199,7 @@ final class LiveSkyController: ObservableObject {
         state.restored = false
         notice = nil
         save()
+        refreshLive()
         Log.info("resumed")
         requestUpdate(.resume)
     }
@@ -185,6 +211,7 @@ final class LiveSkyController: ObservableObject {
         let result = wallpapers.restore(Displays.current())
         state.restored = true
         save()
+        refreshLive()
         if !result.missing.isEmpty {
             notice = L("notice.restoreMissing", result.missing.joined(separator: ", "))
         } else if !result.failed.isEmpty {
@@ -306,6 +333,7 @@ final class LiveSkyController: ObservableObject {
             if reason == .screens, let source = reusableSource() {
                 try apply(source, to: displays)
                 save()
+                live.setDisplays(displays)
                 scheduleTimer(after: max(60, settings.updateInterval - Date().timeIntervalSince(state.lastSourceDate ?? Date())))
                 Log.info("re-composed the last render for the new display layout")
                 return
@@ -371,6 +399,7 @@ final class LiveSkyController: ObservableObject {
                 transientFailures = 0
                 save()
                 Log.info("update finished: \(weather.condition), \(displays.count) display(s)")
+                live.show(LiveScene(weather: weather, date: job.date), on: displays)
                 scheduleTimer()
             }
         } catch {
@@ -394,6 +423,7 @@ final class LiveSkyController: ObservableObject {
         state.failure = failure
         transientError = nil
         save()
+        refreshLive()
         Log.error("renderer failure on \(failure.osBuild): \(failure.kind) \(failure.check) \(failure.detail) [stage \(failure.stage), \(failure.exitDescription)]")
         scheduleTimer()
     }
@@ -488,33 +518,39 @@ final class LiveSkyController: ObservableObject {
             controller.displaysAsleep = true
             controller.sleepEpoch += 1
             Log.info("displays asleep")
+            controller.refreshLive()
         }
         on(workspace, NSWorkspace.willSleepNotification) { controller in
             controller.displaysAsleep = true
             controller.sleepEpoch += 1
             Log.info("system going to sleep")
+            controller.refreshLive()
         }
         on(workspace, NSWorkspace.screensDidWakeNotification) { controller in
             controller.displaysAsleep = false
             controller.sleepEpoch += 1
             Log.info("displays awake")
+            controller.refreshLive()
             controller.updateAfterWake()
         }
         on(workspace, NSWorkspace.didWakeNotification) { controller in
             controller.sleepEpoch += 1
             controller.displaysAsleep = Displays.anyAsleep
             Log.info("system woke, displays asleep: \(controller.displaysAsleep)")
+            controller.refreshLive()
             if !controller.displaysAsleep { controller.updateAfterWake() }
         }
         on(workspace, NSWorkspace.sessionDidResignActiveNotification) { controller in
             controller.sessionActive = false
             controller.sleepEpoch += 1
             Log.info("session inactive")
+            controller.refreshLive()
         }
         on(workspace, NSWorkspace.sessionDidBecomeActiveNotification) { controller in
             controller.sessionActive = true
             controller.sleepEpoch += 1
             Log.info("session active")
+            controller.refreshLive()
             controller.updateAfterWake()
         }
         on(workspace, NSWorkspace.activeSpaceDidChangeNotification) { controller in
@@ -549,6 +585,8 @@ final class LiveSkyController: ObservableObject {
     private func screensChanged() {
         guard settings.setupComplete else { return }
         let displays = Displays.current()
+        // A display that only moved keeps its wallpaper, but its live window has to follow.
+        live.setDisplays(displays)
         if state.restored {
             // A display that was away during "Restore Original Wallpaper" gets its original back too.
             let stillOurs = displays.filter { Paths.isLiveSkyWallpaper(NSWorkspace.shared.desktopImageURL(for: $0.screen)) }
@@ -584,6 +622,22 @@ final class LiveSkyController: ObservableObject {
            state.lastSuccess == nil || transientError != nil {
             requestUpdate(.settings, after: 1)
         }
+    }
+
+    // MARK: Live sky
+
+    /// The live sky runs only while the wallpaper under it is kept up to date and can be seen.
+    private var liveAllowed: Bool {
+        settings.setupComplete && !settings.paused && !state.restored && state.failure == nil && !displaysAsleep && sessionActive
+    }
+
+    private func refreshLive() { live.setAllowed(liveAllowed) }
+
+    /// At launch the live sky starts from the last render if it is recent, while the first update runs.
+    private func showLastSceneIfFresh() {
+        guard let weather = state.lastWeather, let date = state.lastSourceDate, state.failure == nil, !state.restored,
+              state.lastSourcePlace == placeKey, Date().timeIntervalSince(date) < settings.updateInterval else { return }
+        live.show(LiveScene(weather: weather, date: date), on: Displays.current())
     }
 
     // MARK: Persistence

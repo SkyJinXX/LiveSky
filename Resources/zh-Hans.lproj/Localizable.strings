@@ -101,3 +101,25 @@
 "condition.heavySnow" = "大雪";
 "condition.thunderstorms" = "雷暴";
 "condition.strongStorms" = "强雷暴";
+
+/* 动态天空 */
+"menu.live" = "动态天空";
+"menu.live.onPower" = "插电时：%@";
+"menu.live.onBattery" = "用电池时：%@";
+"live.cap.still" = "静止";
+"live.cap.fps" = "最高 %ld 帧";
+"status.live.starting" = "动态天空正在启动…";
+"status.live.running.adapter" = "动态天空：插电，最高 %ld 帧";
+"status.live.running.battery" = "动态天空：用电池，最高 %ld 帧";
+"status.live.running.lowPower" = "动态天空：低电量模式，最高 %ld 帧";
+"status.live.still.adapter" = "动态天空：插电时保持静止";
+"status.live.still.battery" = "动态天空：用电池时保持静止";
+"status.live.still.lowPower" = "动态天空：低电量模式下保持静止";
+"status.live.paused" = "动态天空：桌面被窗口挡住，已暂停";
+"status.live.hot" = "动态天空：Mac 温度较高，已暂停";
+"status.live.failed" = "动态天空出错已停止，下次更新时再试";
+"settings.live" = "动态天空";
+"settings.live.enabled" = "让桌面图标后面的天空动起来";
+"settings.live.onPower" = "插电时";
+"settings.live.onBattery" = "用电池时";
+"settings.live.note" = "这里设的是上限，实际帧率由天气决定：晴天 24 帧，多云和雾 30 帧，雨、雪、雷暴 60 帧。桌面大部分被窗口挡住、锁屏或 Mac 温度较高时，动画会暂停。低电量模式按“用电池时”的设置。";

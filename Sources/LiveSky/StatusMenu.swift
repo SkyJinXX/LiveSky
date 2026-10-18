@@ -36,6 +36,7 @@ extension LiveSkyController {
             lines.append(error)
             if let next = nextUpdate, !settings.paused { lines.append(L("status.nextRetry", Self.time(next))) }
         }
+        if let line = live.statusLine { lines.append(line) }
         if let notice { lines.append(notice) }
         if settings.paused {
             lines.append(state.restored ? L("status.restored") : L("status.paused"))
@@ -165,6 +166,13 @@ final class StatusMenuController: NSObject, NSMenuDelegate {
         add(settings.paused ? L("menu.resume") : L("menu.pause"), #selector(togglePause), enabled: settings.setupComplete)
         add(L("menu.restore"), #selector(restore), enabled: controller.wallpapers.hasBackups && !(settings.paused && controller.state.restored))
         menu.addItem(.separator())
+        add(L("menu.live"), #selector(toggleLive), enabled: settings.setupComplete).state = settings.liveEnabled ? .on : .off
+        let capsEnabled = settings.setupComplete && settings.liveEnabled
+        menu.addItem(capItem(L("menu.live.onPower", settings.liveCapOnPower.title), selected: settings.liveCapOnPower,
+                             onBattery: false, enabled: capsEnabled))
+        menu.addItem(capItem(L("menu.live.onBattery", settings.liveCapOnBattery.title), selected: settings.liveCapOnBattery,
+                             onBattery: true, enabled: capsEnabled))
+        menu.addItem(.separator())
         add(L("menu.settings"), #selector(openSettings), key: ",")
         add(L("menu.quit"), #selector(quit), key: "q")
     }
@@ -197,17 +205,43 @@ final class StatusMenuController: NSObject, NSMenuDelegate {
         return item
     }
 
-    private func add(_ title: String, _ action: Selector, key: String = "", enabled: Bool = true) {
+    @discardableResult
+    private func add(_ title: String, _ action: Selector, key: String = "", enabled: Bool = true) -> NSMenuItem {
         let item = NSMenuItem(title: title, action: action, keyEquivalent: key)
         item.target = self
         item.isEnabled = enabled
         menu.addItem(item)
+        return item
+    }
+
+    /// "On Power Adapter: Up to 60 fps" with the ceilings in a submenu. The tag carries the
+    /// ceiling, plus 1000 for the battery setting.
+    private func capItem(_ title: String, selected: LiveCap, onBattery: Bool, enabled: Bool) -> NSMenuItem {
+        let item = NSMenuItem(title: title, action: nil, keyEquivalent: "")
+        item.indentationLevel = 1
+        item.isEnabled = enabled
+        let submenu = NSMenu()
+        submenu.autoenablesItems = false
+        for cap in LiveCap.allCases {
+            let choice = NSMenuItem(title: cap.title, action: #selector(chooseCap(_:)), keyEquivalent: "")
+            choice.target = self
+            choice.tag = cap.rawValue + (onBattery ? 1000 : 0)
+            choice.state = cap == selected ? .on : .off
+            submenu.addItem(choice)
+        }
+        item.submenu = submenu
+        return item
     }
 
     @objc private func updateNow() { controller.updateNow() }
     @objc private func retry() { controller.retry() }
     @objc private func togglePause() { controller.settings.paused ? controller.resume() : controller.pause() }
     @objc private func restore() { controller.restoreOriginalWallpaper() }
+    @objc private func toggleLive() { controller.setLiveEnabled(!controller.settings.liveEnabled) }
+    @objc private func chooseCap(_ sender: NSMenuItem) {
+        guard let cap = LiveCap(rawValue: sender.tag % 1000) else { return }
+        controller.setLiveCap(cap, onBattery: sender.tag >= 1000)
+    }
     @objc private func exportDiagnostics() { Diagnostics.exportWithPanel(controller: controller) }
     @objc private func openSettings() { showSettings() }
     @objc private func quit() { NSApp.terminate(nil) }

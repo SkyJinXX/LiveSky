@@ -2,6 +2,7 @@ import AppKit
 
 struct Display {
     let screen: NSScreen
+    let id: CGDirectDisplayID
     let uuid: String
     let name: String
     let pixelWidth: Int
@@ -18,7 +19,7 @@ enum Displays {
             let uuid = CGDisplayCreateUUIDFromDisplayID(id).map { CFUUIDCreateString(nil, $0.takeRetainedValue()) as String }
                 ?? "display-\(id)"
             let scale = screen.backingScaleFactor
-            return Display(screen: screen, uuid: uuid, name: screen.localizedName,
+            return Display(screen: screen, id: id, uuid: uuid, name: screen.localizedName,
                            pixelWidth: Int((screen.frame.width * scale).rounded()),
                            pixelHeight: Int((screen.frame.height * scale).rounded()))
         }

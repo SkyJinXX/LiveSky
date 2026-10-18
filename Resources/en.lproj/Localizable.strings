@@ -101,3 +101,25 @@
 "condition.heavySnow" = "Heavy Snow";
 "condition.thunderstorms" = "Thunderstorms";
 "condition.strongStorms" = "Strong Storms";
+
+/* Live sky */
+"menu.live" = "Live Sky";
+"menu.live.onPower" = "On Power Adapter: %@";
+"menu.live.onBattery" = "On Battery: %@";
+"live.cap.still" = "Still";
+"live.cap.fps" = "Up to %ld fps";
+"status.live.starting" = "Live sky starting…";
+"status.live.running.adapter" = "Live sky: up to %ld fps on power adapter";
+"status.live.running.battery" = "Live sky: up to %ld fps on battery";
+"status.live.running.lowPower" = "Live sky: up to %ld fps in Low Power Mode";
+"status.live.still.adapter" = "Live sky: still on power adapter";
+"status.live.still.battery" = "Live sky: still on battery";
+"status.live.still.lowPower" = "Live sky: still in Low Power Mode";
+"status.live.paused" = "Live sky paused while windows cover the desktop";
+"status.live.hot" = "Live sky paused while the Mac is hot";
+"status.live.failed" = "Live sky stopped after errors; it tries again at the next update";
+"settings.live" = "Live Sky";
+"settings.live.enabled" = "Animate the sky behind the desktop icons";
+"settings.live.onPower" = "On power adapter";
+"settings.live.onBattery" = "On battery";
+"settings.live.note" = "Each setting is a ceiling: the weather sets the actual frame rate (24 fps for clear skies, 30 for clouds and fog, 60 for rain, snow and storms). The animation pauses while windows cover most of the desktop, the screen is locked or the Mac is hot. Low Power Mode uses the battery setting.";

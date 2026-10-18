@@ -5,9 +5,11 @@ import WeatherKit
 import CoreLocation
 import Darwin
 
-// LiveSkyRenderer: a one-shot Mac Catalyst helper. LiveSky launches it once per update with the
-// weather inputs as arguments; it renders Apple's WeatherUI sky once into a transparent,
-// non-interactive window, captures it to a PNG, prints one LIVESKY_STATUS line and exits.
+// LiveSkyRenderer: a Mac Catalyst helper. LiveSky launches it once per update with the weather
+// inputs as arguments; it renders Apple's WeatherUI sky once into a transparent, non-interactive
+// window, captures it to a PNG, prints one LIVESKY_STATUS line and exits.
+// With --live it keeps that sky running instead, behind the desktop icons of one display, until
+// LiveSky closes its standard input. Commands on standard input: "fps <n>", "pause", "resume".
 
 private func log(_ message: String) { fputs(message + "\n", stderr) }
 private struct MetadataResponse { let pointer: UnsafeRawPointer; let state: UInt }
@@ -43,10 +45,14 @@ struct RenderRequest {
     var visible = false
     var simulateIncompatible = false
     var simulateCrash = false
+    var live = false
+    var liveFrame = CGRect.zero
+    var fps = 0.0
+    var reduceMotion = false
 
     static func parse(_ arguments: [String]) -> RenderRequest {
         var request = RenderRequest()
-        let flags: Set<String> = ["visible", "simulate-incompatible", "simulate-crash"]
+        let flags: Set<String> = ["visible", "simulate-incompatible", "simulate-crash", "live", "reduce-motion"]
         var values: [String: String] = [:]
         var index = 1
         while index < arguments.count {
@@ -65,11 +71,19 @@ struct RenderRequest {
         let iso = ISO8601DateFormatter()
         func number(_ key: String) -> Double? { values[key].flatMap(Double.init) }
         func date(_ key: String) -> Date? { values[key].flatMap { iso.date(from: $0) } }
-        guard let output = values["output"], output.hasPrefix("/") else { livesky_fail("ARGUMENTS", "missing --output") }
+        request.live = values["live"] != nil
+        if request.live {
+            let parts = (values["frame"] ?? "").split(separator: ",").compactMap { Double($0) }
+            guard parts.count == 4, parts[2] >= 100, parts[3] >= 100 else { livesky_fail("ARGUMENTS", "missing or invalid --frame") }
+            request.liveFrame = CGRect(x: parts[0], y: parts[1], width: parts[2], height: parts[3])
+            request.fps = max(0, number("fps") ?? 0)
+        } else {
+            guard let output = values["output"], output.hasPrefix("/") else { livesky_fail("ARGUMENTS", "missing --output") }
+            request.output = output
+        }
         guard let when = date("date") else { livesky_fail("ARGUMENTS", "missing or invalid --date") }
         guard let latitude = number("latitude"), let longitude = number("longitude"),
               abs(latitude) <= 90, abs(longitude) <= 180 else { livesky_fail("ARGUMENTS", "missing or invalid coordinates") }
-        request.output = output
         request.date = when
         request.latitude = latitude
         request.longitude = longitude
@@ -85,6 +99,7 @@ struct RenderRequest {
             request.height = CGFloat(height)
         }
         request.visible = values["visible"] != nil
+        request.reduceMotion = values["reduce-motion"] != nil
         request.simulateIncompatible = values["simulate-incompatible"] != nil
         request.simulateCrash = values["simulate-crash"] != nil
         return request
@@ -95,9 +110,12 @@ livesky_install_crash_handlers()
 setvbuf(stdout, nil, _IOLBF, 0)
 private let request = RenderRequest.parse(CommandLine.arguments)
 livesky_simulate(request.simulateIncompatible ? 1 : 0, request.simulateCrash ? 1 : 0)
-// Backstop in case WeatherUI hangs; LiveSky also enforces its own timeout.
+// Backstop in case WeatherUI hangs; LiveSky also enforces its own timeout. A live sky only has
+// to start in time.
 DispatchQueue.global().asyncAfter(deadline: .now() + 45) {
-    livesky_fail("TIMEOUT", "the renderer did not finish within 45 seconds")
+    guard livesky_live_started() == 0 else { return }
+    livesky_fail("TIMEOUT", request.live ? "the live sky did not start within 45 seconds"
+                                         : "the renderer did not finish within 45 seconds")
 }
 
 @MainActor
@@ -108,10 +126,20 @@ final class AppDelegate: NSObject, UIApplicationDelegate {
     func application(_ application: UIApplication, didFinishLaunchingWithOptions options: [UIApplication.LaunchOptionsKey: Any]? = nil) -> Bool {
         log("APP started Catalyst=\(ProcessInfo.processInfo.isMacCatalystApp)")
         livesky_stage("window")
+        if request.live {
+            let frame = request.liveFrame
+            livesky_live_configure(frame.origin.x, frame.origin.y, frame.width, frame.height)
+            guard livesky_live_install() != 0 else { livesky_fail("LIVE", "CAMetalLayer has no nextDrawable to pace") }
+            livesky_live_set_cap(request.fps)
+            listenForCommands()
+        }
         if !request.visible, livesky_conceal_windows(1) == 0 {
             livesky_fail("WINDOW", "could not make the AppKit host window invisible")
         }
-        let window = UIWindow(frame: CGRect(x: 0, y: 0, width: request.width, height: request.height))
+        // A live window takes the display's size from its AppKit window; the composition inside
+        // stays at the verified size and is scaled to fit.
+        let size = request.live ? request.liveFrame.size : CGSize(width: request.width, height: request.height)
+        let window = UIWindow(frame: CGRect(origin: .zero, size: size))
         window.rootViewController = UIHostingController(rootView: Color.black)
         self.window = window
         if request.visible {
@@ -119,7 +147,7 @@ final class AppDelegate: NSObject, UIApplicationDelegate {
         } else {
             // Transparent, non-interactive and never key: nothing appears on screen and the
             // frontmost app keeps focus.
-            window.alpha = 0
+            window.alpha = request.live ? 1 : 0
             window.isUserInteractionEnabled = false
             window.isHidden = false
             livesky_conceal_existing_windows("shown")
@@ -135,6 +163,7 @@ final class AppDelegate: NSObject, UIApplicationDelegate {
         let emptyArray = unsafeBitCast([String](), to: UnsafeRawPointer.self)
         guard var zone = TimeZone(identifier: request.timeZone) else { livesky_fail("ARGUMENTS", "invalid time zone \(request.timeZone)") }
         let city = request.city.isEmpty ? "LiveSky" : request.city
+        weather_frame_set_reduce_motion(request.reduceMotion ? 1 : 0)
         guard let initializer = weather_frame_load(MemoryLayout<LocationStorage>.size) else {
             livesky_fail("MISSING SYMBOL", "WeatherCore.Location.init")
         }
@@ -195,10 +224,76 @@ final class AppDelegate: NSObject, UIApplicationDelegate {
             LinearGradient(gradient: gradient, startPoint: .top, endPoint: .bottom)
             original
         }.ignoresSafeArea()
-        window?.rootViewController = UIHostingController(rootView: root)
+        if request.live {
+            // Same composition as the wallpaper: scaled to the display's width, cropped at the
+            // bottom (or filled by height and cropped at the sides on a taller display).
+            let width = request.width, height = request.height
+            let scaled = GeometryReader { geometry in
+                root.frame(width: width, height: height)
+                    .scaleEffect(max(geometry.size.width / width, geometry.size.height / height), anchor: .top)
+                    .frame(width: geometry.size.width, height: geometry.size.height, alignment: .top)
+            }.ignoresSafeArea()
+            window?.rootViewController = UIHostingController(rootView: scaled)
+        } else {
+            window?.rootViewController = UIHostingController(rootView: root)
+        }
         if !request.visible { livesky_conceal_existing_windows("composed") }
         livesky_stage("rendering")
-        DispatchQueue.main.asyncAfter(deadline: .now() + 4) { self.capture() }
+        if request.live {
+            waitForFirstFrames()
+        } else {
+            DispatchQueue.main.asyncAfter(deadline: .now() + 4) { self.capture() }
+        }
+    }
+
+    // MARK: Live
+
+    /// Fades the window in once WeatherUI draws, then reports the sky as live.
+    func waitForFirstFrames(checks: Int = 0) {
+        guard livesky_live_frames() >= 3 || checks >= 80 else {
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) { self.waitForFirstFrames(checks: checks + 1) }
+            return
+        }
+        livesky_stage("live")
+        livesky_live_fade(1, 0.8)
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.85) {
+            livesky_live_mark_started()
+            print("LIVESKY_STATUS {\"status\":\"live\"}")
+            fflush(stdout)
+            self.reportFrames(since: livesky_live_frames(), at: Date())
+        }
+    }
+
+    /// Every five seconds: the frame rate actually drawn, for LiveSky's status and diagnostics.
+    func reportFrames(since frames: Int, at date: Date) {
+        DispatchQueue.main.asyncAfter(deadline: .now() + 5) {
+            let now = Date(), count = livesky_live_frames()
+            let fps = Double(count - frames) / now.timeIntervalSince(date)
+            print(String(format: "LIVESKY_LIVE {\"fps\":%.1f,\"paused\":%@}", fps, livesky_live_paused() != 0 ? "true" : "false"))
+            fflush(stdout)
+            self.reportFrames(since: count, at: now)
+        }
+    }
+
+    /// LiveSky's commands. When it closes the pipe (or quits) the window must not outlive it; it
+    /// fades out first, since the wallpaper underneath has its stars and rain in other places.
+    func listenForCommands() {
+        Thread.detachNewThread {
+            while let line = readLine() {
+                let parts = line.split(separator: " ")
+                switch parts.first {
+                case "fps"?: if parts.count == 2, let fps = Double(parts[1]) { livesky_live_set_cap(fps) }
+                case "pause"?: livesky_live_set_paused(1)
+                case "resume"?: livesky_live_set_paused(0)
+                default: log("LIVE unknown command \(line)")
+                }
+            }
+            log("LIVE input closed")
+            DispatchQueue.main.async {
+                livesky_live_fade(0, 0.6)
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.65) { exit(0) }
+            }
+        }
     }
 
     func capture() {

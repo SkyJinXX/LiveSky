@@ -40,6 +40,17 @@ struct DebugOptions: Codable, Equatable {
     }
 }
 
+/// Frame-rate ceilings for the live sky. WeatherUI picks its own rate for each kind of weather
+/// (24 fps for clear skies, 30 for clouds and fog, 60 for rain, snow and storms); a ceiling only
+/// ever lowers it. `still` leaves just the wallpaper.
+enum LiveCap: Int, Codable, CaseIterable {
+    case still = 0
+    case fps12 = 12
+    case fps24 = 24
+    case fps30 = 30
+    case fps60 = 60
+}
+
 struct Settings: Codable, Equatable {
     static let intervals = [5, 10, 15, 30, 60]
 
@@ -51,6 +62,10 @@ struct Settings: Codable, Equatable {
     /// Bundle path the login item was registered from; a moved app registers itself again.
     var loginItemPath: String?
     var paused = false
+    /// The live sky: WeatherUI's animation behind the desktop icons, over the wallpaper.
+    var liveEnabled = true
+    var liveCapOnPower = LiveCap.fps60
+    var liveCapOnBattery = LiveCap.fps12
     var debug = DebugOptions()
 
     init() {}
@@ -64,6 +79,9 @@ struct Settings: Codable, Equatable {
         launchAtLogin = try c.decodeIfPresent(Bool.self, forKey: .launchAtLogin) ?? true
         loginItemPath = try c.decodeIfPresent(String.self, forKey: .loginItemPath)
         paused = try c.decodeIfPresent(Bool.self, forKey: .paused) ?? false
+        liveEnabled = try c.decodeIfPresent(Bool.self, forKey: .liveEnabled) ?? true
+        liveCapOnPower = (try? c.decodeIfPresent(LiveCap.self, forKey: .liveCapOnPower)) ?? .fps60
+        liveCapOnBattery = (try? c.decodeIfPresent(LiveCap.self, forKey: .liveCapOnBattery)) ?? .fps12
         debug = try c.decodeIfPresent(DebugOptions.self, forKey: .debug) ?? DebugOptions()
     }
 

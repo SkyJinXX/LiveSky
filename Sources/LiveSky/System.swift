@@ -122,6 +122,7 @@ enum Diagnostics {
             "Language: \(Bundle.main.preferredLocalizations.first ?? "?")",
             "Location mode: \(settings.locationMode?.rawValue ?? "not chosen"), interval: \(settings.intervalMinutes) min, paused: \(settings.paused)",
             "Displays: \(Displays.signature(Displays.current()))",
+            controller.live.diagnosticsLine,
             "Last success: \(state.lastSuccess.map { iso.string(from: $0) } ?? "never") on build \(state.lastSuccessBuild ?? "-")",
         ]
         if let weather = state.lastWeather {

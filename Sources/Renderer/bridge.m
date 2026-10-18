@@ -1,9 +1,12 @@
 #import <Foundation/Foundation.h>
+#import <CoreGraphics/CoreGraphics.h>
 #import <dlfcn.h>
 #import <math.h>
 #import <objc/message.h>
 #import <objc/runtime.h>
+#import <pthread.h>
 #import <signal.h>
+#import <time.h>
 #import <unistd.h>
 #import "bridge.h"
 
@@ -129,9 +132,16 @@ static void failf(const char *check, const char *format, ...) {
 // floats above normal windows so it is never occluded (occluded windows stop rendering), joins
 // every Space so nothing switches Spaces, and stays out of Mission Control and window cycling.
 static int concealWindows = 1;
+// Live mode puts the window behind the desktop icons of one display instead (see below).
+static int liveMode;
+static void desktopize(id window);
 
 static void conceal(id window) {
     if (!concealWindows || !window || ![window respondsToSelector:sel_registerName("setAlphaValue:")]) return;
+    if (liveMode) {
+        desktopize(window);
+        return;
+    }
     ((void (*)(id, SEL, double))objc_msgSend)(window, sel_registerName("setAlphaValue:"), 0.0);
     ((void (*)(id, SEL, BOOL))objc_msgSend)(window, sel_registerName("setIgnoresMouseEvents:"), YES);
     ((void (*)(id, SEL, BOOL))objc_msgSend)(window, sel_registerName("setHasShadow:"), NO);
@@ -190,12 +200,119 @@ void livesky_conceal_existing_windows(const char *moment) {
     }
 }
 
+#pragma mark - Live wallpaper
+
+// In live mode the sky keeps running in a borderless, click-through window at the desktop window
+// level of one display: below the desktop icons and every app window, on every Space, unaffected
+// by Mission Control. The window starts transparent and fades in once WeatherUI draws frames.
+// The frame rate is paced, and the sky paused, by holding WeatherUI's render thread before it
+// takes its next drawable: hiding the window does not stop WeatherUI, but this does.
+static CGRect liveFrame;
+static double liveAlpha;
+static volatile int liveStarted;
+static volatile long liveFrames;
+static double liveCap;
+static int livePaused;
+static pthread_mutex_t liveLock = PTHREAD_MUTEX_INITIALIZER;
+static pthread_cond_t liveResumed = PTHREAD_COND_INITIALIZER;
+static IMP originalNextDrawable;
+
+static void desktopize(id window) {
+    static int32_t (*levelForKey)(int32_t);
+    if (!levelForKey) levelForKey = (int32_t (*)(int32_t))dlsym(RTLD_DEFAULT, "CGWindowLevelForKey");
+    NSInteger level = levelForKey ? levelForKey(2) : -2147483623; // kCGDesktopWindowLevelKey
+    NSUInteger mask = ((NSUInteger (*)(id, SEL))objc_msgSend)(window, sel_registerName("styleMask"));
+    if (mask != 0) ((void (*)(id, SEL, NSUInteger))objc_msgSend)(window, sel_registerName("setStyleMask:"), 0); // borderless
+    CGRect frame = ((CGRect (*)(id, SEL))objc_msgSend)(window, sel_registerName("frame"));
+    if (!CGRectEqualToRect(frame, liveFrame))
+        ((void (*)(id, SEL, CGRect, BOOL))objc_msgSend)(window, sel_registerName("setFrame:display:"), liveFrame, YES);
+    ((void (*)(id, SEL, double))objc_msgSend)(window, sel_registerName("setAlphaValue:"), liveAlpha);
+    ((void (*)(id, SEL, BOOL))objc_msgSend)(window, sel_registerName("setIgnoresMouseEvents:"), YES);
+    ((void (*)(id, SEL, BOOL))objc_msgSend)(window, sel_registerName("setHasShadow:"), NO);
+    ((void (*)(id, SEL, BOOL))objc_msgSend)(window, sel_registerName("setExcludedFromWindowsMenu:"), YES);
+    ((void (*)(id, SEL, NSInteger))objc_msgSend)(window, sel_registerName("setLevel:"), level);
+    // canJoinAllSpaces | stationary | ignoresCycle
+    NSUInteger behavior = (1u << 0) | (1u << 4) | (1u << 6);
+    ((void (*)(id, SEL, NSUInteger))objc_msgSend)(window, sel_registerName("setCollectionBehavior:"), behavior);
+}
+
+static id pacedNextDrawable(id self, SEL _cmd) {
+    pthread_mutex_lock(&liveLock);
+    while (livePaused) pthread_cond_wait(&liveResumed, &liveLock);
+    double cap = liveCap;
+    pthread_mutex_unlock(&liveLock);
+    if (cap > 0) {
+        static uint64_t last;
+        uint64_t interval = (uint64_t)(1e9 / cap), now = clock_gettime_nsec_np(CLOCK_UPTIME_RAW);
+        if (last && now < last + interval) usleep((useconds_t)((last + interval - now) / 1000));
+        last = clock_gettime_nsec_np(CLOCK_UPTIME_RAW);
+    }
+    __atomic_add_fetch(&liveFrames, 1, __ATOMIC_RELAXED);
+    return ((id (*)(id, SEL))originalNextDrawable)(self, _cmd);
+}
+
+void livesky_live_configure(double x, double y, double width, double height) {
+    liveMode = 1;
+    liveFrame = CGRectMake(x, y, width, height);
+}
+
+int livesky_live_install(void) {
+    Class layer = NSClassFromString(@"CAMetalLayer");
+    if (layer && !originalNextDrawable) originalNextDrawable = hook(layer, "nextDrawable", (IMP)pacedNextDrawable);
+    return originalNextDrawable != NULL;
+}
+
+void livesky_live_set_cap(double fps) {
+    pthread_mutex_lock(&liveLock);
+    liveCap = fps > 0 ? fps : 0;
+    pthread_mutex_unlock(&liveLock);
+}
+
+void livesky_live_set_paused(int paused) {
+    pthread_mutex_lock(&liveLock);
+    livePaused = paused;
+    pthread_cond_broadcast(&liveResumed);
+    pthread_mutex_unlock(&liveLock);
+}
+
+int livesky_live_paused(void) {
+    pthread_mutex_lock(&liveLock);
+    int paused = livePaused;
+    pthread_mutex_unlock(&liveLock);
+    return paused;
+}
+
+long livesky_live_frames(void) { return __atomic_load_n(&liveFrames, __ATOMIC_RELAXED); }
+int livesky_live_started(void) { return liveStarted; }
+void livesky_live_mark_started(void) { liveStarted = 1; }
+
+// Main thread only. A new fade replaces one still running.
+void livesky_live_fade(double target, double seconds) {
+    static int generation;
+    int fade = ++generation;
+    const int steps = 24;
+    double start = liveAlpha;
+    for (int step = 1; step <= steps; step++) {
+        dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(seconds * step / steps * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
+            if (fade != generation) return;
+            double t = (double)step / steps;
+            liveAlpha = start + (target - start) * t * t * (3 - 2 * t);
+            Class applicationClass = NSClassFromString(@"NSApplication");
+            id application = ((id (*)(id, SEL))objc_msgSend)(applicationClass, sel_registerName("sharedApplication"));
+            NSArray *windows = ((id (*)(id, SEL))objc_msgSend)(application, sel_registerName("windows"));
+            for (id window in windows) ((void (*)(id, SEL, double))objc_msgSend)(window, sel_registerName("setAlphaValue:"), liveAlpha);
+        });
+    }
+}
+
 #pragma mark - Swift runtime helpers
 
 static void *handle, *manager, *observer;
 static uint8_t *gradient, *animation, *view;
 static const uintptr_t *optionalDate, *optionalOrientation;
 static double sunElevation = NAN, moonPhase = NAN;
+static size_t reduceMotionOffset;
+static int reduceMotion;
 static const char *locationMeta = "$s11WeatherCore8LocationVMa";
 static const char *animationMeta = "$s9WeatherUI23BackgroundAnimationDataO5ModelVMa";
 static const char *gradientMeta = "$s9WeatherUI21SkyBackgroundGradientVMa";
@@ -364,7 +481,7 @@ const void *weather_frame_load(size_t locationCapacity) {
     at.model.sunrise = sunrise.offset;
     optionalDate = sunrise.type;
     at.model.sunset = field(model, "sunset", "Swift.Optional<Foundation.Date>").offset;
-    field(model, "isReduceMotionEnabled", "Swift.Bool");
+    reduceMotionOffset = field(model, "isReduceMotionEnabled", "Swift.Bool").offset;
 
     const uintptr_t *background = structure(options.type, 10);
     at.options.locationIDs = field(background, "locationIDs", "Swift.Array<Swift.String>").offset;
@@ -479,6 +596,7 @@ void weather_frame_prepare(uint8_t condition, const void *emptyArray, double dat
     putDouble(options,at.options.displayScale,1.0);
     inject(options+at.options.orientation,optionalOrientation,1);
     animation[at.model.isDayTime]=daytime;
+    animation[reduceMotionOffset]=reduceMotion ? 1 : 0;
     putOptionalDate(animation,at.model.sunrise,sunrise);
     putOptionalDate(animation,at.model.sunset,sunset);
 
@@ -534,5 +652,6 @@ const void *weather_frame_gradient(void) {
     result=c.returned[0];
     return &result;
 }
+void weather_frame_set_reduce_motion(int enabled) { reduceMotion = enabled; }
 double weather_frame_sun_elevation(void) { return sunElevation; }
 double weather_frame_moon_phase(void) { return moonPhase; }

@@ -133,6 +133,20 @@ struct SettingsView: View {
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .padding(8)
             }
+            GroupBox(label: Text(L("settings.live")).font(.headline)) {
+                VStack(alignment: .leading, spacing: 10) {
+                    Toggle(L("settings.live.enabled"), isOn: liveBinding)
+                    Group {
+                        Picker(L("settings.live.onPower"), selection: capBinding(onBattery: false)) { capOptions }
+                        Picker(L("settings.live.onBattery"), selection: capBinding(onBattery: true)) { capOptions }
+                    }
+                    .frame(maxWidth: 260)
+                    .disabled(!controller.settings.liveEnabled)
+                    Text(L("settings.live.note")).font(.caption).foregroundColor(.secondary).fixedSize(horizontal: false, vertical: true)
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(8)
+            }
             HStack(alignment: .firstTextBaseline) {
                 VStack(alignment: .leading, spacing: 2) {
                     HStack(spacing: 4) {
@@ -261,6 +275,19 @@ struct SettingsView: View {
             launchAtLogin = newValue
             if !firstRun { controller.setLaunchAtLogin(newValue) }
         })
+    }
+
+    private var liveBinding: Binding<Bool> {
+        Binding(get: { controller.settings.liveEnabled }, set: { controller.setLiveEnabled($0) })
+    }
+
+    private func capBinding(onBattery: Bool) -> Binding<LiveCap> {
+        Binding(get: { onBattery ? controller.settings.liveCapOnBattery : controller.settings.liveCapOnPower },
+                set: { controller.setLiveCap($0, onBattery: onBattery) })
+    }
+
+    private var capOptions: some View {
+        ForEach(LiveCap.allCases, id: \.self) { cap in Text(cap.title).tag(cap) }
     }
 
     private func openLocationSettings() {

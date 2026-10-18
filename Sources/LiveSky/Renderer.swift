@@ -43,12 +43,11 @@ final class RendererRunner: @unchecked Sendable {
         }
     }
 
-    private func arguments(_ job: RenderJob) -> [String] {
+    /// The weather inputs, shared by wallpaper renders and the live sky.
+    static func weatherArguments(_ weather: WeatherSnapshot, date: Date) -> [String] {
         let iso = ISO8601DateFormatter()
-        let weather = job.weather
         var arguments = [
-            "--output", job.output.path,
-            "--date", iso.string(from: job.date),
+            "--date", iso.string(from: date),
             "--condition", weather.condition,
             "--cloud-cover", String(weather.cloudCover),
             "--wind-speed", String(weather.windSpeed),
@@ -60,6 +59,11 @@ final class RendererRunner: @unchecked Sendable {
         ]
         if let sunrise = weather.sunrise { arguments += ["--sunrise", iso.string(from: sunrise)] }
         if let sunset = weather.sunset { arguments += ["--sunset", iso.string(from: sunset)] }
+        return arguments
+    }
+
+    private func arguments(_ job: RenderJob) -> [String] {
+        var arguments = ["--output", job.output.path] + Self.weatherArguments(job.weather, date: job.date)
         if job.simulateIncompatible { arguments.append("--simulate-incompatible") }
         if job.simulateCrash { arguments.append("--simulate-crash") }
         return arguments

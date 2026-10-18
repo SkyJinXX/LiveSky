@@ -14,6 +14,7 @@ void weather_frame_prepare(uint8_t condition, const void *emptyArray, double dat
 const void *weather_frame_view(void);
 const void *weather_frame_gradient(void);
 int weather_frame_loaded(void);
+void weather_frame_set_reduce_motion(int enabled);
 double weather_frame_sun_elevation(void);
 double weather_frame_moon_phase(void);
 
@@ -24,3 +25,15 @@ void livesky_conceal_existing_windows(const char *moment);
 void livesky_stage(const char *stage);
 void livesky_simulate(int incompatible, int crash);
 __attribute__((noreturn)) void livesky_fail(const char *check, const char *detail);
+
+// Live wallpaper mode: a click-through window at the desktop level of the display at `frame`
+// (AppKit global coordinates), paced to at most `fps` frames per second (0 = WeatherUI's own rate).
+void livesky_live_configure(double x, double y, double width, double height);
+int livesky_live_install(void);
+void livesky_live_set_cap(double fps);
+void livesky_live_set_paused(int paused);
+int livesky_live_paused(void);
+long livesky_live_frames(void);
+void livesky_live_fade(double target, double seconds);
+int livesky_live_started(void);
+void livesky_live_mark_started(void);

@@ -19,6 +19,8 @@ enum ControlChannel {
       complete-setup              finish first-run setup with the current choices
       set-interval <minutes>      5, 10, 15, 30 or 60
       login-item on|off           launch at login
+      live [on|off]               print the live sky's state, or switch it on or off
+      live-cap power|battery <c>  frame-rate ceiling: still, 12, 24, 30 or 60
       debug <option> <value>      simulate-incompatible|simulate-crash|simulate-offline|pretend-unverified on|off,
                                   interval-seconds <n>|off
       clear-failure               forget the recorded renderer failure
@@ -159,6 +161,19 @@ final class ControlServer: NSObject {
             }
             controller.setInterval(minutes)
             return "ok"
+        case "live":
+            if let value = rest.first {
+                guard value == "on" || value == "off" else { return "error: live [on|off]" }
+                controller.setLiveEnabled(value == "on")
+            }
+            return json(controller.live.debugInfo)
+        case "live-cap":
+            let caps: [String: LiveCap] = ["still": .still, "12": .fps12, "24": .fps24, "30": .fps30, "60": .fps60]
+            guard rest.count == 2, rest[0] == "power" || rest[0] == "battery", let cap = caps[rest[1]] else {
+                return "error: live-cap power|battery still|12|24|30|60"
+            }
+            controller.setLiveCap(cap, onBattery: rest[0] == "battery")
+            return json(controller.live.debugInfo)
         case "login-item":
             controller.setLaunchAtLogin(rest.first == "on")
             return "ok: \(LoginItem.status) \(controller.loginItemNote ?? "")"
@@ -234,7 +249,12 @@ final class ControlServer: NSObject {
         if let debug = try? JSONSerialization.jsonObject(with: JSONStore.encoder.encode(settings.debug)) {
             info["debug"] = debug
         }
-        let data = (try? JSONSerialization.data(withJSONObject: info, options: [.prettyPrinted, .sortedKeys])) ?? Data()
+        info["live"] = controller.live.debugInfo
+        return json(info)
+    }
+
+    private func json(_ object: [String: Any]) -> String {
+        let data = (try? JSONSerialization.data(withJSONObject: object, options: [.prettyPrinted, .sortedKeys])) ?? Data()
         return String(decoding: data, as: UTF8.self)
     }
 }

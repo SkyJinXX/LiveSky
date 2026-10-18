@@ -57,6 +57,9 @@ if let index = arguments.firstIndex(of: "--ctl") {
     exit(ControlClient.run(Array(arguments[(index + 1)...])))
 }
 
+// Writing to a live renderer that has just exited must fail with EPIPE, not end LiveSky.
+signal(SIGPIPE, SIG_IGN)
+
 MainActor.assumeIsolated {
     let app = NSApplication.shared
     let delegate = AppDelegate()
