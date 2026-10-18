@@ -399,6 +399,8 @@ final class LiveSkyController: ObservableObject {
                 transientFailures = 0
                 save()
                 Log.info("update finished: \(weather.condition), \(displays.count) display(s)")
+                // This update may have cleared a renderer failure, which kept the live sky off.
+                refreshLive()
                 live.show(LiveScene(weather: weather, date: job.date), on: displays)
                 scheduleTimer()
             }

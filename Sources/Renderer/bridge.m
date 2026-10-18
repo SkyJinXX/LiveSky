@@ -42,6 +42,7 @@ __attribute__((naked)) static void invoke(void *fn, SwiftCall *call) {
 #pragma mark - Status reporting
 
 static const char *volatile currentStage = "launch";
+static char stageCopies[2][96];
 static int simulateIncompatible, simulateCrash;
 
 static void writeAll(int fd, const char *text) {
@@ -89,9 +90,15 @@ void livesky_install_crash_handlers(void) {
     for (unsigned i = 0; i < sizeof signals / sizeof signals[0]; i++) sigaction(signals[i], &action, NULL);
 }
 
+// Swift passes a temporary C string, so the stage is copied. The copies alternate, so a crash
+// handler never reads one that is being overwritten.
 void livesky_stage(const char *stage) {
-    currentStage = stage;
-    fprintf(stderr, "STAGE %s\n", stage);
+    static int next;
+    char *copy = stageCopies[next];
+    next ^= 1;
+    strlcpy(copy, stage, sizeof stageCopies[0]);
+    currentStage = copy;
+    fprintf(stderr, "STAGE %s\n", copy);
 }
 
 void livesky_simulate(int incompatible, int crash) {
