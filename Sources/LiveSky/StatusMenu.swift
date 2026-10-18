@@ -63,23 +63,24 @@ extension LiveSkyController {
         return formatter.string(from: date)
     }
 
+    /// Filled SF Symbols that follow the current weather, day or night.
     var statusSymbol: String {
-        if state.failure != nil { return "exclamationmark.triangle" }
-        if settings.paused { return "pause.circle" }
-        guard let weather = state.lastWeather else { return "cloud.sun" }
+        if state.failure != nil { return "exclamationmark.triangle.fill" }
+        if settings.paused { return "pause.circle.fill" }
+        guard let weather = state.lastWeather else { return "cloud.sun.fill" }
         let day = (state.lastSunElevation ?? 1) > 0
         switch weather.condition {
-        case "clear", "mostlyClear": return day ? "sun.max" : "moon.stars"
-        case "partlyCloudy": return day ? "cloud.sun" : "cloud.moon"
-        case "cloudy": return "cloud"
-        case "foggy": return "cloud.fog"
-        case "drizzle": return "cloud.drizzle"
-        case "rain": return "cloud.rain"
-        case "heavyRain": return "cloud.heavyrain"
-        case "freezingDrizzle", "freezingRain": return "cloud.sleet"
-        case "snow", "heavySnow": return "cloud.snow"
-        case "thunderstorms", "strongStorms": return "cloud.bolt.rain"
-        default: return "cloud.sun"
+        case "clear", "mostlyClear": return day ? "sun.max.fill" : "moon.stars.fill"
+        case "partlyCloudy": return day ? "cloud.sun.fill" : "cloud.moon.fill"
+        case "cloudy": return "cloud.fill"
+        case "foggy": return "cloud.fog.fill"
+        case "drizzle": return "cloud.drizzle.fill"
+        case "rain": return "cloud.rain.fill"
+        case "heavyRain": return "cloud.heavyrain.fill"
+        case "freezingDrizzle", "freezingRain": return "cloud.sleet.fill"
+        case "snow", "heavySnow": return "cloud.snow.fill"
+        case "thunderstorms", "strongStorms": return "cloud.bolt.rain.fill"
+        default: return "cloud.sun.fill"
         }
     }
 }
