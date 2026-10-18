@@ -235,6 +235,7 @@ final class AppDelegate: NSObject, UIApplicationDelegate {
                     .frame(width: geometry.size.width, height: geometry.size.height, alignment: .top)
             }.ignoresSafeArea()
             window?.rootViewController = UIHostingController(rootView: scaled)
+            fitWindowToScene()
         } else {
             window?.rootViewController = UIHostingController(rootView: root)
         }
@@ -259,6 +260,7 @@ final class AppDelegate: NSObject, UIApplicationDelegate {
             return
         }
         log("LIVE \(frames) frames after \(Double(checks) / 10)s")
+        fitWindowToScene()
         guard frames > 0 else {
             livesky_fail("PACING", "WeatherUI took no drawable through -[CAMetalLayer nextDrawable] within 8 seconds, so its frame rate could not be capped or paused")
         }
@@ -270,6 +272,17 @@ final class AppDelegate: NSObject, UIApplicationDelegate {
             fflush(stdout)
             self.reportFrames(since: livesky_live_frames(), at: Date())
         }
+    }
+
+    /// The window is created with the display's size in AppKit points, but Catalyst draws UIKit
+    /// points at 77%, and it resizes such a window to its scene only on some displays: on an
+    /// external display the sky stopped short of the right edge. The scene follows its AppKit
+    /// window, so the UIKit window takes the scene's size.
+    func fitWindowToScene() {
+        guard let window, let size = window.windowScene?.coordinateSpace.bounds.size,
+              size.width > 0, size.height > 0, window.bounds.size != size else { return }
+        log("LIVE window \(window.bounds.size) resized to its scene, \(size)")
+        window.frame = CGRect(origin: .zero, size: size)
     }
 
     /// Every five seconds: the frame rate actually drawn, for LiveSky's status and diagnostics.
