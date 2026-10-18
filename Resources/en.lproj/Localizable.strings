@@ -1,0 +1,103 @@
+/* Menu */
+"menu.updateNow" = "Update Now";
+"menu.retry" = "Retry";
+"menu.pause" = "Pause";
+"menu.resume" = "Resume";
+"menu.restore" = "Restore Original Wallpaper";
+"menu.exportDiagnostics" = "Export Diagnostics…";
+"menu.settings" = "Settings…";
+"menu.quit" = "Quit";
+
+/* Status */
+"status.setup" = "Finish setup to start";
+"status.incompatible" = "This macOS version isn't supported yet";
+"status.waitingForRetry" = "Wallpaper left unchanged. Press Retry, or wait for a macOS update";
+"status.updating" = "Updating…";
+"status.lastUpdate" = "Updated at %@";
+"status.notYet" = "Not updated yet";
+"status.nextRetry" = "Trying again at %@";
+"status.paused" = "Updates paused";
+"status.restored" = "Original wallpaper restored; updates paused";
+"status.unverified" = "Working on %@, which hasn't been verified before";
+
+/* Renderer failures */
+"failure.check" = "Compatibility check failed: %@";
+"failure.crash" = "The renderer crashed with %1$@ (%2$@)";
+"failure.killed" = "The renderer was terminated with %@";
+"failure.timeout" = "The renderer timed out (%@)";
+"failure.image" = "The render was rejected: %@";
+"failure.launch" = "The renderer couldn't start: %@";
+"failure.other" = "The renderer failed: %@";
+
+/* Notices */
+"notice.restoreMissing" = "Original wallpaper file not found for %@";
+"notice.restoreFailed" = "Couldn't restore the wallpaper of %@";
+"notice.nothingToRestore" = "No backed-up wallpaper to restore";
+
+/* Errors */
+"error.location.denied" = "Location access is turned off for LiveSky";
+"error.location.timeout" = "Timed out waiting for your location";
+"error.location.unavailable" = "Your location isn't available right now";
+"error.location.disabled" = "Location Services are turned off";
+"error.location.noCity" = "No city chosen";
+"error.location.notChosen" = "No location chosen";
+"error.weather.stale" = "The weather data is out of date";
+"error.weather.code" = "Unknown weather code %ld";
+"error.weather.format" = "Unexpected weather data";
+"error.network" = "Couldn't get the weather: %@";
+"error.wallpaper" = "Couldn't set the wallpaper: %@";
+"error.noDisplays" = "No displays found";
+"error.translocated" = "Move LiveSky to the Applications folder and open it from there";
+"location.current" = "Current Location";
+
+/* Settings */
+"settings.title" = "LiveSky Settings";
+"settings.welcomeTitle" = "Welcome to LiveSky";
+"settings.welcome" = "Your desktop, with the Weather app's sky";
+"settings.welcomeDetail" = "LiveSky draws your wallpaper with macOS's own weather renderer and keeps it in step with the time of day, the weather and the moon. Choose where the weather should come from:";
+"settings.location" = "Location";
+"settings.location.system" = "Use my location (approximate)";
+"settings.location.manual" = "Choose a city";
+"settings.location.notDetermined" = "macOS will ask whether LiveSky may use your location.";
+"settings.location.allow" = "Allow Location Access…";
+"settings.location.denied" = "Location access is off. Turn it on in System Settings, or choose a city instead.";
+"settings.location.disabled" = "Location Services are turned off in System Settings.";
+"settings.location.openSettings" = "Open System Settings";
+"settings.location.granted" = "Location access allowed";
+"settings.location.current" = "Current location: %@";
+"settings.location.note" = "Only your approximate location is used. The city name comes from Apple's geocoding service.";
+"settings.city.placeholder" = "Search for a city";
+"settings.city.selected" = "Selected: %@";
+"settings.city.none" = "No matching cities";
+"settings.city.error" = "Search failed: %@";
+"settings.updates" = "Updates";
+"settings.interval" = "Update every";
+"settings.minutes" = "%ld minutes";
+"settings.launchAtLogin" = "Open at login";
+"settings.loginItem.approval" = "Allow LiveSky in System Settings > General > Login Items.";
+"settings.loginItem.failed" = "Couldn't turn on launch at login.";
+"settings.attribution" = "Weather data by";
+"settings.version" = "LiveSky %1$@ · %2$@";
+"settings.start" = "Start";
+"settings.done" = "Done";
+
+/* Alerts */
+"alert.translocated.title" = "Move LiveSky to the Applications folder";
+"alert.translocated.body" = "macOS is running LiveSky from a temporary, read-only location, where it can't start at login or render reliably. In Finder, drag LiveSky into the Applications folder, then open it from there.";
+"alert.quit" = "Quit";
+
+/* Weather conditions */
+"condition.clear" = "Clear";
+"condition.mostlyClear" = "Mostly Clear";
+"condition.partlyCloudy" = "Partly Cloudy";
+"condition.cloudy" = "Cloudy";
+"condition.foggy" = "Foggy";
+"condition.drizzle" = "Drizzle";
+"condition.freezingDrizzle" = "Freezing Drizzle";
+"condition.rain" = "Rain";
+"condition.heavyRain" = "Heavy Rain";
+"condition.freezingRain" = "Freezing Rain";
+"condition.snow" = "Snow";
+"condition.heavySnow" = "Heavy Snow";
+"condition.thunderstorms" = "Thunderstorms";
+"condition.strongStorms" = "Strong Storms";

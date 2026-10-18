@@ -1,0 +1,103 @@
+/* 菜单 */
+"menu.updateNow" = "立即更新";
+"menu.retry" = "重试";
+"menu.pause" = "暂停";
+"menu.resume" = "继续";
+"menu.restore" = "恢复原壁纸";
+"menu.exportDiagnostics" = "导出诊断信息…";
+"menu.settings" = "设置…";
+"menu.quit" = "退出";
+
+/* 状态 */
+"status.setup" = "完成设置后开始";
+"status.incompatible" = "此系统版本暂不兼容";
+"status.waitingForRetry" = "壁纸未被改动。可点“重试”，系统更新后也会自动重试";
+"status.updating" = "正在更新…";
+"status.lastUpdate" = "上次更新：%@";
+"status.notYet" = "尚未更新";
+"status.nextRetry" = "将于 %@ 重试";
+"status.paused" = "已暂停自动更新";
+"status.restored" = "已恢复原壁纸，自动更新已暂停";
+"status.unverified" = "已在未经验证的 %@ 上运行成功";
+
+/* 渲染失败 */
+"failure.check" = "兼容性检查未通过：%@";
+"failure.crash" = "渲染进程崩溃：%1$@（%2$@）";
+"failure.killed" = "渲染进程被终止：%@";
+"failure.timeout" = "渲染超时（%@）";
+"failure.image" = "渲染结果未通过校验：%@";
+"failure.launch" = "无法启动渲染进程：%@";
+"failure.other" = "渲染失败：%@";
+
+/* 提示 */
+"notice.restoreMissing" = "找不到 %@ 的原壁纸文件";
+"notice.restoreFailed" = "无法恢复 %@ 的壁纸";
+"notice.nothingToRestore" = "没有可恢复的原壁纸";
+
+/* 错误 */
+"error.location.denied" = "LiveSky 的定位权限已关闭";
+"error.location.timeout" = "获取位置超时";
+"error.location.unavailable" = "暂时无法获取位置";
+"error.location.disabled" = "定位服务已关闭";
+"error.location.noCity" = "尚未选择城市";
+"error.location.notChosen" = "尚未选择位置";
+"error.weather.stale" = "天气数据已过期";
+"error.weather.code" = "无法识别的天气代码 %ld";
+"error.weather.format" = "天气数据格式异常";
+"error.network" = "无法获取天气数据：%@";
+"error.wallpaper" = "无法设置壁纸：%@";
+"error.noDisplays" = "没有找到显示器";
+"error.translocated" = "请把 LiveSky 移到“应用程序”文件夹后再打开";
+"location.current" = "当前位置";
+
+/* 设置 */
+"settings.title" = "LiveSky 设置";
+"settings.welcomeTitle" = "欢迎使用 LiveSky";
+"settings.welcome" = "让桌面换上“天气”App 的天空";
+"settings.welcomeDetail" = "LiveSky 用 macOS 自带的天气渲染绘制壁纸，并随时间、天气和月相自动更新。请先选择天气的位置：";
+"settings.location" = "位置";
+"settings.location.system" = "使用系统定位（大致位置）";
+"settings.location.manual" = "手动选择城市";
+"settings.location.notDetermined" = "macOS 会询问是否允许 LiveSky 使用定位。";
+"settings.location.allow" = "允许定位…";
+"settings.location.denied" = "定位权限已关闭。可以在系统设置中打开，或改为手动选择城市。";
+"settings.location.disabled" = "定位服务已在系统设置中关闭。";
+"settings.location.openSettings" = "打开系统设置";
+"settings.location.granted" = "已允许定位";
+"settings.location.current" = "当前位置：%@";
+"settings.location.note" = "只使用大致位置。城市名称由 Apple 的地理编码服务解析。";
+"settings.city.placeholder" = "搜索城市";
+"settings.city.selected" = "已选择：%@";
+"settings.city.none" = "没有找到匹配的城市";
+"settings.city.error" = "搜索失败：%@";
+"settings.updates" = "更新";
+"settings.interval" = "更新频率";
+"settings.minutes" = "%ld 分钟";
+"settings.launchAtLogin" = "登录时启动";
+"settings.loginItem.approval" = "请在“系统设置 > 通用 > 登录项”中允许 LiveSky。";
+"settings.loginItem.failed" = "无法设置登录时启动。";
+"settings.attribution" = "天气数据来自";
+"settings.version" = "LiveSky %1$@ · %2$@";
+"settings.start" = "开始使用";
+"settings.done" = "完成";
+
+/* 提醒 */
+"alert.translocated.title" = "请把 LiveSky 移到“应用程序”文件夹";
+"alert.translocated.body" = "macOS 正在从临时的只读位置运行 LiveSky，在这里无法可靠地渲染，也无法登录时启动。请在访达中把 LiveSky 拖到“应用程序”文件夹，再从那里打开。";
+"alert.quit" = "退出";
+
+/* 天气 */
+"condition.clear" = "晴朗";
+"condition.mostlyClear" = "大部晴朗";
+"condition.partlyCloudy" = "局部多云";
+"condition.cloudy" = "阴天";
+"condition.foggy" = "雾";
+"condition.drizzle" = "毛毛雨";
+"condition.freezingDrizzle" = "冻毛毛雨";
+"condition.rain" = "雨";
+"condition.heavyRain" = "大雨";
+"condition.freezingRain" = "冻雨";
+"condition.snow" = "雪";
+"condition.heavySnow" = "大雪";
+"condition.thunderstorms" = "雷暴";
+"condition.strongStorms" = "强雷暴";
