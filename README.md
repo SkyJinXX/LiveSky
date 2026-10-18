@@ -9,7 +9,7 @@ The sky is not a photo or an imitation. LiveSky asks macOS's own weather rendere
 ## Requirements
 
 - A Mac with Apple silicon.
-- macOS 15 Sequoia. Verified on macOS 15.7.7 (24G720). On other versions LiveSky still tries, and stops safely if something doesn't match (see [Other macOS versions](#other-macos-versions)).
+- macOS 15 Sequoia, macOS 26 Tahoe or macOS 27. Verified on macOS 15.7.7 (24G720); macOS 26 and 27 have so far been tested only in virtual machines. On other versions LiveSky still tries, and stops safely if something doesn't match (see [Other macOS versions](#other-macos-versions)).
 - An internet connection for the weather data.
 
 ## Install
@@ -19,7 +19,7 @@ The sky is not a photo or an imitation. LiveSky asks macOS's own weather rendere
 3. Double-click LiveSky. Because LiveSky is not signed with an Apple Developer ID, macOS says *Apple could not verify "LiveSky" is free of malware*. Click **Done**.
 4. Open **System Settings → Privacy & Security** and scroll down to **Security**. Next to *"LiveSky" was blocked to protect your Mac*, click **Open Anyway**, then confirm with **Open Anyway** and your password or Touch ID.
 
-You only do this once. On macOS 15, Control-clicking the app and choosing Open no longer skips this step.
+You only do this once. Since macOS 15, Control-clicking the app and choosing Open no longer skips this step.
 
 ## First launch
 
@@ -58,11 +58,12 @@ Can't find the icon? Menu bar managers such as Bartender hide new icons, and on 
 
 WeatherUI is a private Apple framework, so any macOS update can change it. LiveSky is built to fail safely:
 
-- The renderer runs as a separate process. Before it writes any memory, it checks that every WeatherUI function it needs exists and that the Swift types it fills in still have the verified sizes and field offsets.
+- The renderer runs as a separate process. Before it writes any memory, it checks that every WeatherUI function it needs exists, then finds each field it fills in by name and checks the field's type. Fields that only moved, as they did on macOS 26 and 27, are found in their new place; if a type gained or lost a field, or a field changed type, the renderer stops.
 - LiveSky then checks the picture: the expected size, not transparent, not a single flat colour.
 - If anything fails, **your wallpaper is left unchanged**, the menu shows *This macOS version isn't supported yet*, and **Export Diagnostics…** saves a report (macOS build, the failing check, the renderer's output) you can send along with a bug report.
 - After a failure LiveSky does not try again on the same macOS build until you press **Retry**. After a macOS update it tries again by itself, at most once a day.
 - When it works on a build that hasn't been verified yet, it runs quietly as usual; only the version line at the bottom of the settings window says "not yet verified".
+- macOS 26.6.2 and 27.0.1 have been tested in virtual machines: every check passes and the sky's colours match macOS 15 pixel for pixel. A virtual machine can't draw WeatherUI's moon, sun and clouds, so those haven't been seen on a real Mac with macOS 26 or 27 yet, and the settings window still says "not yet verified" there.
 
 ## Good to know
 
