@@ -65,7 +65,9 @@ mkdir -p "$staging" dist
 ditto "$app" "$staging/LiveSky.app"
 cp README.md README.zh-CN.md LICENSE "$staging/"
 rm -f dist/LiveSky.zip
-ditto -c -k --sequesterRsrc --keepParent "$staging" dist/LiveSky.zip
+# No extended attributes: they only carry this Mac's com.apple.provenance and would add a
+# __MACOSX folder for other unzip tools. The code signature does not depend on them.
+ditto -c -k --norsrc --noextattr --keepParent "$staging" dist/LiveSky.zip
 rm -rf "$build/zip"
 
 echo "built $app"
