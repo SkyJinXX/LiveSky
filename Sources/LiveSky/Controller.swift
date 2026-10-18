@@ -331,9 +331,9 @@ final class LiveSkyController: ObservableObject {
             let displays = Displays.current()
             guard !displays.isEmpty else { throw LiveSkyError.wallpaper(L("error.noDisplays")) }
             if reason == .screens, let source = reusableSource() {
-                try apply(source, to: displays)
+                let applied = try applyToDisplays(source, startedWith: displays)
                 save()
-                live.setDisplays(displays)
+                live.setDisplays(applied)
                 scheduleTimer(after: max(60, settings.updateInterval - Date().timeIntervalSince(state.lastSourceDate ?? Date())))
                 Log.info("re-composed the last render for the new display layout")
                 return
@@ -385,7 +385,7 @@ final class LiveSkyController: ObservableObject {
                 case .success(let image):
                     source = image
                 }
-                try apply(source, to: displays)
+                let applied = try applyToDisplays(source, startedWith: displays)
                 state.failure = nil
                 state.lastSuccess = Date()
                 state.lastSuccessBuild = SystemInfo.osBuild
@@ -398,10 +398,10 @@ final class LiveSkyController: ObservableObject {
                 transientError = nil
                 transientFailures = 0
                 save()
-                Log.info("update finished: \(weather.condition), \(displays.count) display(s)")
+                Log.info("update finished: \(weather.condition), \(applied.count) display(s)")
                 // This update may have cleared a renderer failure, which kept the live sky off.
                 refreshLive()
-                live.show(LiveScene(weather: weather, date: job.date), on: displays)
+                live.show(LiveScene(weather: weather, date: job.date), on: applied)
                 scheduleTimer()
             }
         } catch {
@@ -457,6 +457,20 @@ final class LiveSkyController: ObservableObject {
         case nil:
             throw LiveSkyError.location(L("error.location.notChosen"))
         }
+    }
+
+    /// Sets the render on the displays found when the update started, and again on the displays
+    /// there are now if some came or went while it rendered. Waking from sleep often brings an
+    /// external display back a few seconds into the update; it would otherwise keep the old sky
+    /// until the next update, since its return can look like no change at all. Returns the displays
+    /// that have the render.
+    private func applyToDisplays(_ source: CGImage, startedWith displays: [Display]) throws -> [Display] {
+        try apply(source, to: displays)
+        let current = Displays.current()
+        guard !current.isEmpty, Displays.signature(current) != Displays.signature(displays) else { return displays }
+        Log.info("displays changed during the update: \(Displays.signature(current))")
+        try apply(source, to: current)
+        return current
     }
 
     /// Writes one new file per display (macOS caches wallpapers by path), then sets them all.
