@@ -45,6 +45,11 @@ final class LiveSkyController: ObservableObject {
         Paths.prepare()
         settings = JSONStore.load(Settings.self, from: Paths.settings) ?? Settings()
         state = JSONStore.load(AppState.self, from: Paths.state) ?? AppState()
+        // Earlier versions took a renderer that macOS killed for an incompatible macOS.
+        if state.failure?.kind == "killed" {
+            Log.info("forgetting a renderer kill recorded as incompatibility on \(state.failure?.osBuild ?? "-")")
+            state.failure = nil
+        }
         locationAuthorization = location.authorization
         location.onAuthorizationChange = { [weak self] in self?.authorizationChanged() }
         currentPlaceName = state.lastWeather?.placeName
@@ -362,6 +367,12 @@ final class LiveSkyController: ObservableObject {
                     Log.info("render interrupted by sleep (\(failure.kind)); will update after wake")
                     missedWhileAsleep = true
                     return
+                }
+                // macOS itself sometimes ends the renderer: RunningBoard killed one at launch because it
+                // wanted to suspend it. That says nothing about WeatherUI, so it is retried like a
+                // network error instead of being taken for an incompatible macOS.
+                if failure.kind == "killed" {
+                    throw LiveSkyError.wallpaper(L("error.renderer.stopped"))
                 }
                 recordFailure(failure)
                 return

@@ -45,6 +45,7 @@
 "error.weather.format" = "Unexpected weather data";
 "error.network" = "Couldn't get the weather: %@";
 "error.wallpaper" = "Couldn't set the wallpaper: %@";
+"error.renderer.stopped" = "macOS stopped the renderer";
 "error.noDisplays" = "No displays found";
 "error.translocated" = "Move LiveSky to the Applications folder and open it from there";
 "location.current" = "Current Location";

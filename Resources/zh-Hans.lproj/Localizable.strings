@@ -45,6 +45,7 @@
 "error.weather.format" = "天气数据格式异常";
 "error.network" = "无法获取天气数据：%@";
 "error.wallpaper" = "无法设置壁纸：%@";
+"error.renderer.stopped" = "macOS 中止了渲染进程";
 "error.noDisplays" = "没有找到显示器";
 "error.translocated" = "请把 LiveSky 移到“应用程序”文件夹后再打开";
 "location.current" = "当前位置";

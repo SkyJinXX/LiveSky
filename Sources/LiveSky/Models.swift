@@ -108,6 +108,7 @@ struct WeatherSnapshot: Codable, Equatable {
 
 /// A renderer or image-validation failure. These are treated as "this macOS version is not
 /// compatible": the wallpaper is left untouched and automatic retries wait for a new OS build.
+/// A renderer that macOS killed is not recorded here; that update is retried instead.
 struct FailureRecord: Codable, Equatable {
     var kind: String
     var check: String
