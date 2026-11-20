@@ -66,6 +66,8 @@ struct Settings: Codable, Equatable {
     var liveEnabled = true
     var liveCapOnPower = LiveCap.fps60
     var liveCapOnBattery = LiveCap.fps12
+    /// With "Use my location": take the condition from the LiveSky Weather shortcut (Apple Weather).
+    var useWeatherShortcut = false
     var debug = DebugOptions()
 
     init() {}
@@ -82,6 +84,7 @@ struct Settings: Codable, Equatable {
         liveEnabled = try c.decodeIfPresent(Bool.self, forKey: .liveEnabled) ?? true
         liveCapOnPower = (try? c.decodeIfPresent(LiveCap.self, forKey: .liveCapOnPower)) ?? .fps60
         liveCapOnBattery = (try? c.decodeIfPresent(LiveCap.self, forKey: .liveCapOnBattery)) ?? .fps12
+        useWeatherShortcut = try c.decodeIfPresent(Bool.self, forKey: .useWeatherShortcut) ?? false
         debug = try c.decodeIfPresent(DebugOptions.self, forKey: .debug) ?? DebugOptions()
     }
 
@@ -98,6 +101,8 @@ struct WeatherSnapshot: Codable, Equatable {
     var timeZone: String
     var weatherCode: Int
     var condition: String
+    /// Set when `condition` is not Open-Meteo's weather code: the shortcut it came from.
+    var conditionSource: String?
     var temperatureCelsius: Double?
     var cloudCover: Double
     var windSpeed: Double

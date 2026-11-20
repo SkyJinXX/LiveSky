@@ -21,6 +21,7 @@ enum ControlChannel {
       login-item on|off           launch at login
       live [on|off]               print the live sky's state, or switch it on or off
       live-cap power|battery <c>  frame-rate ceiling: still, 12, 24, 30 or 60
+      shortcut on|off             match the Weather app through the LiveSky Weather shortcut
       debug <option> <value>      simulate-incompatible|simulate-crash|simulate-offline|pretend-unverified on|off,
                                   interval-seconds <n>|off
       clear-failure               forget the recorded renderer failure
@@ -174,6 +175,10 @@ final class ControlServer: NSObject {
             }
             controller.setLiveCap(cap, onBattery: rest[0] == "battery")
             return json(controller.live.debugInfo)
+        case "shortcut":
+            guard let value = rest.first, value == "on" || value == "off" else { return "error: shortcut on|off" }
+            controller.setUseWeatherShortcut(value == "on")
+            return statusJSON()
         case "login-item":
             controller.setLaunchAtLogin(rest.first == "on")
             return "ok: \(LoginItem.status) \(controller.loginItemNote ?? "")"
@@ -233,6 +238,7 @@ final class ControlServer: NSObject {
             "osBuild": SystemInfo.osBuild,
             "verified": controller.isVerifiedBuild,
             "loginItem": "\(LoginItem.status)",
+            "weatherShortcut": "\(controller.shortcutState)",
         ]
         if let next = controller.nextUpdate { info["nextUpdate"] = iso.string(from: next) }
         if let last = state.lastSuccess { info["lastSuccess"] = iso.string(from: last) }
@@ -240,6 +246,7 @@ final class ControlServer: NSObject {
         if let notice = controller.notice { info["notice"] = notice }
         if let weather = state.lastWeather {
             info["weather"] = ["place": weather.placeName, "condition": weather.condition, "code": weather.weatherCode,
+                               "conditionSource": weather.conditionSource ?? "Open-Meteo",
                                "cloudCover": weather.cloudCover, "timeZone": weather.timeZone]
         }
         if let failure = state.failure {

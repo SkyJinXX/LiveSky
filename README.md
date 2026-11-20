@@ -34,6 +34,16 @@ LiveSky plays Apple's animation in a window behind your desktop icons, on top of
 - To tell whether the desktop is covered, LiveSky reads the positions and sizes of the windows on screen, not their titles or contents. This needs no permission.
 - The lock screen shows the still wallpaper. In Activity Monitor the animation appears as LiveSky Renderer, one per display.
 
+## Match the Weather app
+
+LiveSky's weather comes from Open-Meteo's forecast models. They sometimes miss a shower that is falling right now, while the Weather app also uses radar. With **Use my location**, LiveSky can take the current conditions from Apple Weather instead:
+
+1. Open **Settings…** and, under **Use my location**, turn on **Match the Weather app**.
+2. LiveSky opens the [LiveSky Weather](https://www.icloud.com/shortcuts/55fec3f58d994b96aa309cacdb0950cb) shortcut in Shortcuts. Click **Add Shortcut**.
+3. If Shortcuts asks whether the shortcut may use your location, allow it.
+
+The shortcut gets the current weather where you are and passes its condition (Rain, Cloudy and so on) to LiveSky, which understands it in whatever language your Mac uses (on macOS 15.4 or later; before that, English and Chinese). Clouds, wind and sunrise still come from Open-Meteo, and when the shortcut fails LiveSky goes back to Open-Meteo by itself. It isn't used when you choose a city.
+
 ## Compatibility
 
 LiveSky needs a Mac with Apple silicon.
@@ -62,7 +72,7 @@ This produces `build/LiveSky.app`.
 
 ## License
 
-[MIT](LICENSE). The sky is drawn on your Mac by Apple's WeatherUI framework; LiveSky contains no Apple code or artwork. Weather data by [Open-Meteo.com](https://open-meteo.com) ([CC BY 4.0](https://creativecommons.org/licenses/by/4.0/)).
+[MIT](LICENSE). The sky is drawn on your Mac by Apple's WeatherUI framework; LiveSky contains no Apple code or artwork. Weather data by [Open-Meteo.com](https://open-meteo.com) ([CC BY 4.0](https://creativecommons.org/licenses/by/4.0/)); with **Match the Weather app** on, the current conditions come from Apple Weather through Shortcuts.
 
 ---
 

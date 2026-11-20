@@ -121,12 +121,14 @@ enum Diagnostics {
             "Verified build: \(controller.isVerifiedBuild ? "yes" : "no") (verified: \(SystemInfo.verifiedBuilds.sorted().joined(separator: ", ")))",
             "Language: \(Bundle.main.preferredLocalizations.first ?? "?")",
             "Location mode: \(settings.locationMode?.rawValue ?? "not chosen"), interval: \(settings.intervalMinutes) min, paused: \(settings.paused)",
+            "Weather shortcut: \(controller.shortcutState)",
             "Displays: \(Displays.signature(Displays.current()))",
             controller.live.diagnosticsLine,
             "Last success: \(state.lastSuccess.map { iso.string(from: $0) } ?? "never") on build \(state.lastSuccessBuild ?? "-")",
         ]
         if let weather = state.lastWeather {
-            lines.append("Last weather: \(weather.condition) (code \(weather.weatherCode)), cloud \(Int(weather.cloudCover * 100))%, time zone \(weather.timeZone)")
+            let source = weather.conditionSource.map { " from the \($0) shortcut" } ?? ""
+            lines.append("Last weather: \(weather.condition)\(source) (code \(weather.weatherCode)), cloud \(Int(weather.cloudCover * 100))%, time zone \(weather.timeZone)")
         }
         if let error = controller.transientError {
             lines.append("Last error: \(error)")

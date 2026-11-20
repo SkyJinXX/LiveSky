@@ -34,6 +34,16 @@ LiveSky 把苹果的动画放在桌面图标后面的一个窗口里播放，下
 - 为了判断桌面有没有被挡住，LiveSky 会读取屏幕上窗口的位置和大小，不读标题和内容，也不需要任何权限。
 - 锁屏界面显示的是静态壁纸。在“活动监视器”里，动画显示为 LiveSky Renderer，每块显示器一个。
 
+## 与“天气”App 保持一致
+
+LiveSky 的天气来自 Open-Meteo 的预报模型，有时会漏掉正在下的阵雨，而“天气”App 还用了雷达。使用系统定位时，可以让 LiveSky 改用苹果天气的当前天气：
+
+1. 打开 **设置…**，在“使用系统定位”下面打开 **与“天气”App 保持一致**。
+2. LiveSky 会在“快捷指令”里打开 [LiveSky Weather](https://www.icloud.com/shortcuts/55fec3f58d994b96aa309cacdb0950cb) 快捷指令，点 **添加快捷指令**。
+3. 如果“快捷指令”询问能否使用你的位置，选允许。
+
+这个快捷指令获取你所在位置的当前天气，把天气状况（下雨、多云等）交给 LiveSky。不管你的 Mac 用哪种语言，LiveSky 都能看懂（需要 macOS 15.4 或更新；更早的系统只认英文和中文）。云量、风速和日出日落仍然来自 Open-Meteo；快捷指令出错时，LiveSky 会自动改回 Open-Meteo。手动选择城市时不会使用它。
+
 ## 兼容性
 
 需要搭载 Apple 芯片的 Mac。
@@ -62,7 +72,7 @@ cd LiveSky
 
 ## 许可证
 
-[MIT](LICENSE)。天空由你 Mac 上苹果的 WeatherUI 框架绘制，LiveSky 不包含任何苹果的代码或美术素材。天气数据来自 [Open-Meteo.com](https://open-meteo.com)（[CC BY 4.0](https://creativecommons.org/licenses/by/4.0/)）。
+[MIT](LICENSE)。天空由你 Mac 上苹果的 WeatherUI 框架绘制，LiveSky 不包含任何苹果的代码或美术素材。天气数据来自 [Open-Meteo.com](https://open-meteo.com)（[CC BY 4.0](https://creativecommons.org/licenses/by/4.0/)）；打开“与‘天气’App 保持一致”后，当前天气来自苹果天气（通过“快捷指令”）。
 
 ---
 

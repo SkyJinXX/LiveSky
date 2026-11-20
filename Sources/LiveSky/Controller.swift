@@ -3,13 +3,21 @@ import Combine
 import CoreLocation
 
 /// Owns the settings, the schedule and the update pipeline:
-/// location -> Open-Meteo -> WeatherUI renderer -> validation -> per-display PNG -> wallpaper.
+/// location -> Open-Meteo (condition from the LiveSky Weather shortcut when there is one) ->
+/// WeatherUI renderer -> validation -> per-display PNG -> wallpaper.
 @MainActor
 final class LiveSkyController: ObservableObject {
     enum Reason: String {
         case launch, timer, user, retry, wake, screens, settings, resume
         /// Started by the user: bypasses the incompatibility back-off and display-sleep checks.
         var isUserInitiated: Bool { self == .user || self == .retry }
+    }
+
+    /// The LiveSky Weather shortcut, as Settings shows it.
+    enum ShortcutState: Equatable {
+        case off, checking, missing, waitingForAdd
+        case inUse(condition: String, at: Date)
+        case failed(String)
     }
 
     @Published private(set) var settings: Settings
@@ -21,6 +29,7 @@ final class LiveSkyController: ObservableObject {
     @Published private(set) var loginItemNote: String?
     @Published private(set) var nextUpdate: Date?
     @Published private(set) var currentPlaceName: String?
+    @Published private(set) var shortcutState: ShortcutState = .off
     /// Counts finished update attempts (debug control waits on it).
     private(set) var completedUpdates = 0
 
@@ -40,6 +49,7 @@ final class LiveSkyController: ObservableObject {
     private var missedWhileAsleep = false
     private var queuedReason: Reason?
     private var transientFailures = 0
+    private var shortcutWatch: Task<Void, Never>?
 
     init() {
         Paths.prepare()
@@ -53,6 +63,13 @@ final class LiveSkyController: ObservableObject {
         locationAuthorization = location.authorization
         location.onAuthorizationChange = { [weak self] in self?.authorizationChanged() }
         currentPlaceName = state.lastWeather?.placeName
+        if settings.useWeatherShortcut {
+            if let weather = state.lastWeather, weather.conditionSource != nil {
+                shortcutState = .inUse(condition: weather.condition, at: state.lastSuccess ?? Date())
+            } else {
+                shortcutState = .checking
+            }
+        }
         live.onChange = { [weak self] in self?.objectWillChange.send() }
     }
 
@@ -144,6 +161,55 @@ final class LiveSkyController: ObservableObject {
         saveSettings()
         Log.info("live sky ceiling \(onBattery ? "on battery" : "on power adapter"): \(cap.rawValue == 0 ? "still" : "\(cap.rawValue) fps")")
         live.update(settings: settings)
+    }
+
+    /// "Match the Weather app": switched on without the shortcut, it goes straight to adding it.
+    func setUseWeatherShortcut(_ enabled: Bool) {
+        guard settings.useWeatherShortcut != enabled else { return }
+        settings.useWeatherShortcut = enabled
+        saveSettings()
+        shortcutWatch?.cancel()
+        Log.info("weather shortcut switched \(enabled ? "on" : "off")")
+        guard enabled else {
+            shortcutState = .off
+            updateForShortcut()
+            return
+        }
+        shortcutState = .checking
+        Task {
+            if await WeatherShortcut.isInstalled() {
+                updateForShortcut()
+            } else if settings.useWeatherShortcut {
+                addWeatherShortcut()
+            }
+        }
+    }
+
+    /// Offers the shared shortcut in Shortcuts (Add Shortcut), then looks for it every few seconds for
+    /// ten minutes and updates as soon as it is there. Added later, the next update picks it up.
+    func addWeatherShortcut() {
+        WeatherShortcut.offerToAdd()
+        Log.info("offered the weather shortcut in Shortcuts; waiting for it to be added")
+        shortcutState = .waitingForAdd
+        shortcutWatch?.cancel()
+        shortcutWatch = Task { [weak self] in
+            for _ in 0..<200 {
+                try? await Task.sleep(nanoseconds: 3_000_000_000)
+                guard let self, !Task.isCancelled, self.settings.useWeatherShortcut else { return }
+                if await WeatherShortcut.isInstalled() {
+                    Log.info("weather shortcut added")
+                    self.shortcutState = .checking
+                    self.updateForShortcut()
+                    return
+                }
+            }
+            if let self, self.shortcutState == .waitingForAdd { self.shortcutState = .missing }
+        }
+    }
+
+    /// The shortcut only plays a part with "Use my location".
+    private func updateForShortcut() {
+        if settings.setupComplete, settings.locationMode == .system { requestUpdate(.settings) }
     }
 
     /// Registers or removes the login item. On launch it only acts when the app was moved since
@@ -457,17 +523,65 @@ final class LiveSkyController: ObservableObject {
         switch settings.locationMode {
         case .manual?:
             guard let place = settings.manualPlace else { throw LiveSkyError.location(L("error.location.noCity")) }
-            return try await client.weather(latitude: place.latitude, longitude: place.longitude,
-                                            timeZone: place.timeZone, placeName: place.name)
+            let weather = try await client.weather(latitude: place.latitude, longitude: place.longitude,
+                                                   timeZone: place.timeZone, placeName: place.name)
+            // The shortcut reports the Mac's own location, not the chosen city.
+            Log.info("weather: \(Self.openMeteoSummary(weather)); shortcut not used for a chosen city")
+            return weather
         case .system?:
             guard location.servicesEnabled else { throw LiveSkyError.location(L("error.location.disabled")) }
             let found = try await location.currentLocation()
             let name = await location.placeName(for: found)
-            return try await client.weather(latitude: found.coordinate.latitude, longitude: found.coordinate.longitude,
-                                            timeZone: nil, placeName: name)
+            let weather = try await client.weather(latitude: found.coordinate.latitude, longitude: found.coordinate.longitude,
+                                                   timeZone: nil, placeName: name)
+            return await withShortcutCondition(weather)
         case nil:
             throw LiveSkyError.location(L("error.location.notChosen"))
         }
+    }
+
+    /// With "Match the Weather app" on, the LiveSky Weather shortcut's condition replaces Open-Meteo's
+    /// when the shortcut answers: it is Apple Weather's, as in the Weather app. Open-Meteo keeps the
+    /// cloud cover (held inside that condition's band), wind and sun times, and stands in whenever
+    /// the shortcut fails.
+    private func withShortcutCondition(_ weather: WeatherSnapshot) async -> WeatherSnapshot {
+        let openMeteo = Self.openMeteoSummary(weather)
+        guard settings.useWeatherShortcut else {
+            Log.info("weather: \(openMeteo); shortcut off")
+            return weather
+        }
+        guard !settings.debug.simulateOffline else {
+            Log.info("weather: \(openMeteo); shortcut skipped while offline is simulated")
+            return weather
+        }
+        let result = await WeatherShortcut.read()
+        guard settings.useWeatherShortcut else {
+            Log.info("weather: \(openMeteo); shortcut switched off meanwhile")
+            return weather
+        }
+        switch result {
+        case .success(let reading):
+            var merged = weather
+            merged.condition = reading.condition
+            merged.conditionSource = WeatherShortcut.name
+            merged.cloudCover = WeatherShortcut.cloudCover(weather.cloudCover, for: reading.condition)
+            shortcutWatch?.cancel()
+            shortcutState = .inUse(condition: reading.condition, at: Date())
+            Log.info("weather: \(openMeteo); shortcut \"\(reading.label)\": using \(reading.condition), cloud \(Int(merged.cloudCover * 100))%")
+            return merged
+        case .failure(let problem):
+            if await WeatherShortcut.isInstalled() {
+                shortcutState = .failed(problem.reason)
+            } else if shortcutState != .waitingForAdd {
+                shortcutState = .missing
+            }
+            Log.info("weather: \(openMeteo); shortcut failed (\(problem.reason)): using Open-Meteo")
+            return weather
+        }
+    }
+
+    private static func openMeteoSummary(_ weather: WeatherSnapshot) -> String {
+        "Open-Meteo \(weather.condition) (code \(weather.weatherCode), cloud \(Int(weather.cloudCover * 100))%)"
     }
 
     /// Sets the render on the displays found when the update started, and again on the displays

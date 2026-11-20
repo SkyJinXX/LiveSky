@@ -66,6 +66,16 @@
 "settings.location.granted" = "已允许定位";
 "settings.location.current" = "当前位置：%@";
 "settings.location.note" = "只使用大致位置。城市名称由 Apple 的地理编码服务解析。";
+"settings.shortcut.toggle" = "与“天气”App 保持一致";
+"settings.shortcut.note" = "通过 LiveSky Weather 快捷指令读取苹果天气的当前天气，“天气”App 显示下雨时，壁纸也会下雨。云量、风速和日出日落仍来自 Open-Meteo。快捷指令使用你给“快捷指令”的定位权限。";
+"settings.shortcut.checking" = "正在检查快捷指令…";
+"settings.shortcut.missing" = "“快捷指令”里还没有 LiveSky Weather。";
+"settings.shortcut.add" = "添加快捷指令…";
+"settings.shortcut.addAgain" = "重新打开";
+"settings.shortcut.waiting" = "请在“快捷指令”里添加它，LiveSky 会自动发现。";
+"settings.shortcut.inUse" = "正在使用苹果天气：%1$@（%2$@）";
+"settings.shortcut.failed" = "快捷指令没有成功，暂用 Open-Meteo：%@";
+"settings.shortcut.open" = "在“快捷指令”中打开";
 "settings.city.placeholder" = "搜索城市";
 "settings.city.selected" = "已选择：%@";
 "settings.city.none" = "没有找到匹配的城市";
@@ -77,6 +87,7 @@
 "settings.loginItem.approval" = "请在“系统设置 > 通用 > 登录项”中允许 LiveSky。";
 "settings.loginItem.failed" = "无法设置登录时启动。";
 "settings.attribution" = "天气数据来自";
+"settings.attribution.apple" = "和苹果天气";
 "settings.version" = "LiveSky %1$@ · %2$@";
 "settings.version.unverified" = "LiveSky %1$@ · %2$@ · 尚未验证";
 "settings.start" = "开始使用";
@@ -102,6 +113,27 @@
 "condition.heavySnow" = "大雪";
 "condition.thunderstorms" = "雷暴";
 "condition.strongStorms" = "强雷暴";
+/* 只有苹果天气（LiveSky Weather 快捷指令）会给出以下几种。 */
+"condition.mostlyCloudy" = "大部多云";
+"condition.haze" = "雾霾";
+"condition.smoky" = "烟雾";
+"condition.blowingDust" = "沙尘";
+"condition.breezy" = "微风";
+"condition.windy" = "有风";
+"condition.sunShowers" = "太阳雨";
+"condition.sleet" = "雨夹雪";
+"condition.wintryMix" = "混合雨雪";
+"condition.hail" = "冰雹";
+"condition.flurries" = "阵雪";
+"condition.sunFlurries" = "太阳雪";
+"condition.blowingSnow" = "飞雪";
+"condition.blizzard" = "暴风雪";
+"condition.isolatedThunderstorms" = "局地雷暴";
+"condition.scatteredThunderstorms" = "局部雷暴";
+"condition.hot" = "炎热";
+"condition.frigid" = "寒冷";
+"condition.tropicalStorm" = "热带风暴";
+"condition.hurricane" = "飓风";
 
 /* 动态天空 */
 "menu.live" = "动态天空";

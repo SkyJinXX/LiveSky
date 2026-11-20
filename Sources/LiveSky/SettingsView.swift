@@ -152,6 +152,9 @@ struct SettingsView: View {
                     HStack(spacing: 4) {
                         Text(L("settings.attribution"))
                         Link("Open-Meteo", destination: URL(string: "https://open-meteo.com")!)
+                        if controller.settings.useWeatherShortcut, controller.settings.locationMode == .system {
+                            Text(L("settings.attribution.apple"))
+                        }
                     }
                     // Builds outside the verified list are only noted here, not in the menu.
                     Text(L(controller.isVerifiedBuild ? "settings.version" : "settings.version.unverified",
@@ -199,8 +202,42 @@ struct SettingsView: View {
                 }
             }
             Text(L("settings.location.note")).font(.caption).foregroundColor(.secondary).fixedSize(horizontal: false, vertical: true)
+            if !firstRun { weatherShortcut }
         }
         .padding(.leading, 20)
+    }
+
+    /// "Match the Weather app": the condition from the LiveSky Weather shortcut, and what became of it.
+    @ViewBuilder private var weatherShortcut: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            Toggle(L("settings.shortcut.toggle"), isOn: shortcutBinding)
+            Text(L("settings.shortcut.note")).font(.caption).foregroundColor(.secondary).fixedSize(horizontal: false, vertical: true)
+            switch controller.shortcutState {
+            case .off:
+                EmptyView()
+            case .checking:
+                HStack(spacing: 6) {
+                    ProgressView().controlSize(.small)
+                    Text(L("settings.shortcut.checking")).foregroundColor(.secondary)
+                }
+            case .missing:
+                Text(L("settings.shortcut.missing")).foregroundColor(.orange)
+                Button(L("settings.shortcut.add")) { controller.addWeatherShortcut() }
+            case .waitingForAdd:
+                HStack(spacing: 6) {
+                    ProgressView().controlSize(.small)
+                    Text(L("settings.shortcut.waiting")).foregroundColor(.secondary).fixedSize(horizontal: false, vertical: true)
+                }
+                Button(L("settings.shortcut.addAgain")) { controller.addWeatherShortcut() }
+            case .inUse(let condition, let date):
+                Label(L("settings.shortcut.inUse", L("condition.\(condition)"), LiveSkyController.time(date)),
+                      systemImage: "checkmark.circle.fill")
+            case .failed(let reason):
+                Text(L("settings.shortcut.failed", reason)).foregroundColor(.orange).fixedSize(horizontal: false, vertical: true)
+                Button(L("settings.shortcut.open")) { WeatherShortcut.openInShortcuts() }
+            }
+        }
+        .padding(.top, 6)
     }
 
     @ViewBuilder private var citySearch: some View {
@@ -275,6 +312,10 @@ struct SettingsView: View {
             launchAtLogin = newValue
             if !firstRun { controller.setLaunchAtLogin(newValue) }
         })
+    }
+
+    private var shortcutBinding: Binding<Bool> {
+        Binding(get: { controller.settings.useWeatherShortcut }, set: { controller.setUseWeatherShortcut($0) })
     }
 
     private var liveBinding: Binding<Bool> {

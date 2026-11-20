@@ -66,6 +66,16 @@
 "settings.location.granted" = "Location access allowed";
 "settings.location.current" = "Current location: %@";
 "settings.location.note" = "Only your approximate location is used. The city name comes from Apple's geocoding service.";
+"settings.shortcut.toggle" = "Match the Weather app";
+"settings.shortcut.note" = "Takes the current conditions from Apple Weather through the LiveSky Weather shortcut, so rain shows when the Weather app shows it. Clouds, wind and sunrise still come from Open-Meteo. The shortcut uses the location access you give Shortcuts.";
+"settings.shortcut.checking" = "Checking the shortcut…";
+"settings.shortcut.missing" = "The LiveSky Weather shortcut isn't in Shortcuts.";
+"settings.shortcut.add" = "Add Shortcut…";
+"settings.shortcut.addAgain" = "Open It Again";
+"settings.shortcut.waiting" = "Add the shortcut in Shortcuts. LiveSky notices it by itself.";
+"settings.shortcut.inUse" = "Using Apple Weather: %1$@ (%2$@)";
+"settings.shortcut.failed" = "The shortcut didn't work, so Open-Meteo is used: %@";
+"settings.shortcut.open" = "Open in Shortcuts";
 "settings.city.placeholder" = "Search for a city";
 "settings.city.selected" = "Selected: %@";
 "settings.city.none" = "No matching cities";
@@ -77,6 +87,7 @@
 "settings.loginItem.approval" = "Allow LiveSky in System Settings > General > Login Items.";
 "settings.loginItem.failed" = "Couldn't turn on launch at login.";
 "settings.attribution" = "Weather data by";
+"settings.attribution.apple" = "and Apple Weather";
 "settings.version" = "LiveSky %1$@ · %2$@";
 "settings.version.unverified" = "LiveSky %1$@ · %2$@ · not yet verified";
 "settings.start" = "Start";
@@ -102,6 +113,27 @@
 "condition.heavySnow" = "Heavy Snow";
 "condition.thunderstorms" = "Thunderstorms";
 "condition.strongStorms" = "Strong Storms";
+/* Only Apple Weather (the LiveSky Weather shortcut) reports these. */
+"condition.mostlyCloudy" = "Mostly Cloudy";
+"condition.haze" = "Haze";
+"condition.smoky" = "Smoke";
+"condition.blowingDust" = "Dust";
+"condition.breezy" = "Breezy";
+"condition.windy" = "Windy";
+"condition.sunShowers" = "Sun Showers";
+"condition.sleet" = "Sleet";
+"condition.wintryMix" = "Wintry Mix";
+"condition.hail" = "Hail";
+"condition.flurries" = "Flurries";
+"condition.sunFlurries" = "Sun Flurries";
+"condition.blowingSnow" = "Blowing Snow";
+"condition.blizzard" = "Blizzard";
+"condition.isolatedThunderstorms" = "Isolated Thunderstorms";
+"condition.scatteredThunderstorms" = "Scattered Thunderstorms";
+"condition.hot" = "Hot";
+"condition.frigid" = "Cold";
+"condition.tropicalStorm" = "Tropical Storm";
+"condition.hurricane" = "Hurricane";
 
 /* Live sky */
 "menu.live" = "Live Sky";
