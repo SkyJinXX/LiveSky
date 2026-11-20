@@ -18,6 +18,7 @@
 "status.nextRetry" = "将于 %@ 重试";
 "status.paused" = "已暂停自动更新";
 "status.restored" = "已恢复原壁纸，自动更新已暂停";
+"status.chosen" = "%@（手动选择）";
 
 /* 渲染失败 */
 "failure.check" = "兼容性检查未通过：%@";
@@ -80,6 +81,10 @@
 "settings.city.selected" = "已选择：%@";
 "settings.city.none" = "没有找到匹配的城市";
 "settings.city.error" = "搜索失败：%@";
+"settings.weather" = "天气";
+"settings.weather.show" = "显示";
+"settings.weather.automatic" = "自动";
+"settings.weather.note" = "“自动”跟随真实天气。选一种天气，不管窗外是什么天气，桌面都显示它；时间、太阳和月亮仍然是真实的。";
 "settings.updates" = "更新";
 "settings.interval" = "更新频率";
 "settings.minutes" = "%ld 分钟";
@@ -113,7 +118,7 @@
 "condition.heavySnow" = "大雪";
 "condition.thunderstorms" = "雷暴";
 "condition.strongStorms" = "强雷暴";
-/* 只有苹果天气（LiveSky Weather 快捷指令）会给出以下几种。 */
+/* 只有苹果天气（LiveSky Weather 快捷指令）会给出以下几种。所有天气都可以在设置里手动选择。 */
 "condition.mostlyCloudy" = "大部多云";
 "condition.haze" = "雾霾";
 "condition.smoky" = "烟雾";

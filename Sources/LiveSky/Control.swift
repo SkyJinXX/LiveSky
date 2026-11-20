@@ -22,6 +22,8 @@ enum ControlChannel {
       live [on|off]               print the live sky's state, or switch it on or off
       live-cap power|battery <c>  frame-rate ceiling: still, 12, 24, 30 or 60
       shortcut on|off             match the Weather app through the LiveSky Weather shortcut
+      weather [<condition>|auto]  print the chosen weather, or show a WeatherKit condition instead of the
+                                  real weather (auto: the real weather) and wait for the update
       debug <option> <value>      simulate-incompatible|simulate-crash|simulate-offline|pretend-unverified on|off,
                                   interval-seconds <n>|off
       clear-failure               forget the recorded renderer failure
@@ -46,7 +48,7 @@ enum ControlClient {
         }
         center.postNotificationName(ControlChannel.request, object: id, userInfo: ["arguments": arguments],
                                     deliverImmediately: true)
-        let limit: TimeInterval = ["update", "retry"].contains(command) ? 200 : 20
+        let limit: TimeInterval = ["update", "retry", "weather"].contains(command) ? 200 : 20
         let deadline = Date().addingTimeInterval(limit)
         while response.value == nil, Date() < deadline {
             RunLoop.current.run(mode: .default, before: Date().addingTimeInterval(0.1))
@@ -179,6 +181,20 @@ final class ControlServer: NSObject {
             guard let value = rest.first, value == "on" || value == "off" else { return "error: shortcut on|off" }
             controller.setUseWeatherShortcut(value == "on")
             return statusJSON()
+        case "weather":
+            guard let value = rest.first else {
+                return json(["chosen": controller.settings.weatherOverride ?? "auto", "choices": ["auto"] + WeatherChoice.all])
+            }
+            guard value == "auto" || WeatherChoice.all.contains(value) else {
+                return "error: weather auto|" + WeatherChoice.all.joined(separator: "|")
+            }
+            let chosen = value == "auto" ? nil : value
+            guard chosen != controller.settings.weatherOverride else { return statusJSON() }
+            // An update already running may have read the previous choice; the one queued after it has this one.
+            let since = controller.completedUpdates + (controller.isUpdating ? 1 : 0)
+            controller.setWeatherOverride(chosen)
+            if controller.settings.setupComplete, !controller.settings.paused { await waitForUpdate(since: since) }
+            return statusJSON()
         case "login-item":
             controller.setLaunchAtLogin(rest.first == "on")
             return "ok: \(LoginItem.status) \(controller.loginItemNote ?? "")"
@@ -239,6 +255,7 @@ final class ControlServer: NSObject {
             "verified": controller.isVerifiedBuild,
             "loginItem": "\(LoginItem.status)",
             "weatherShortcut": "\(controller.shortcutState)",
+            "weatherChoice": settings.weatherOverride ?? "auto",
         ]
         if let next = controller.nextUpdate { info["nextUpdate"] = iso.string(from: next) }
         if let last = state.lastSuccess { info["lastSuccess"] = iso.string(from: last) }

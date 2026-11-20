@@ -117,6 +117,25 @@ struct SettingsView: View {
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .padding(8)
             }
+            if !firstRun {
+                GroupBox(label: Text(L("settings.weather")).font(.headline)) {
+                    VStack(alignment: .leading, spacing: 10) {
+                        Picker(L("settings.weather.show"), selection: weatherBinding) {
+                            Text(L("settings.weather.automatic")).tag(String?.none)
+                            ForEach(WeatherChoice.groups, id: \.self) { group in
+                                Divider()
+                                ForEach(group, id: \.self) { condition in
+                                    Text(L("condition.\(condition)")).tag(Optional(condition))
+                                }
+                            }
+                        }
+                        .frame(maxWidth: 260)
+                        Text(L("settings.weather.note")).font(.caption).foregroundColor(.secondary).fixedSize(horizontal: false, vertical: true)
+                    }
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(8)
+                }
+            }
             GroupBox(label: Text(L("settings.updates")).font(.headline)) {
                 VStack(alignment: .leading, spacing: 10) {
                     Picker(L("settings.interval"), selection: intervalBinding) {
@@ -316,6 +335,10 @@ struct SettingsView: View {
 
     private var shortcutBinding: Binding<Bool> {
         Binding(get: { controller.settings.useWeatherShortcut }, set: { controller.setUseWeatherShortcut($0) })
+    }
+
+    private var weatherBinding: Binding<String?> {
+        Binding(get: { controller.settings.weatherOverride }, set: { controller.setWeatherOverride($0) })
     }
 
     private var liveBinding: Binding<Bool> {

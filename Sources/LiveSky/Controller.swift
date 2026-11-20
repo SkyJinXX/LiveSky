@@ -3,8 +3,8 @@ import Combine
 import CoreLocation
 
 /// Owns the settings, the schedule and the update pipeline:
-/// location -> Open-Meteo (condition from the LiveSky Weather shortcut when there is one) ->
-/// WeatherUI renderer -> validation -> per-display PNG -> wallpaper.
+/// location -> Open-Meteo (condition from the LiveSky Weather shortcut when there is one, or the
+/// weather chosen in Settings) -> WeatherUI renderer -> validation -> per-display PNG -> wallpaper.
 @MainActor
 final class LiveSkyController: ObservableObject {
     enum Reason: String {
@@ -64,7 +64,7 @@ final class LiveSkyController: ObservableObject {
         location.onAuthorizationChange = { [weak self] in self?.authorizationChanged() }
         currentPlaceName = state.lastWeather?.placeName
         if settings.useWeatherShortcut {
-            if let weather = state.lastWeather, weather.conditionSource != nil {
+            if let weather = state.lastWeather, weather.conditionSource == WeatherShortcut.name {
                 shortcutState = .inUse(condition: weather.condition, at: state.lastSuccess ?? Date())
             } else {
                 shortcutState = .checking
@@ -210,6 +210,16 @@ final class LiveSkyController: ObservableObject {
     /// The shortcut only plays a part with "Use my location".
     private func updateForShortcut() {
         if settings.setupComplete, settings.locationMode == .system { requestUpdate(.settings) }
+    }
+
+    /// Shows `condition` (one of `WeatherChoice.all`) instead of the real weather, or the real
+    /// weather again for nil. An update starts at once, so the sky changes straight away.
+    func setWeatherOverride(_ condition: String?) {
+        guard settings.weatherOverride != condition, condition.map(WeatherChoice.all.contains) ?? true else { return }
+        settings.weatherOverride = condition
+        saveSettings()
+        Log.info("weather choice: \(condition ?? "automatic")")
+        if settings.setupComplete { requestUpdate(.settings) }
     }
 
     /// Registers or removes the login item. On launch it only acts when the app was moved since
@@ -475,7 +485,7 @@ final class LiveSkyController: ObservableObject {
                 transientError = nil
                 transientFailures = 0
                 save()
-                Log.info("update finished: \(weather.condition), \(applied.count) display(s)")
+                Log.info("update finished: \(weather.condition)\(weather.chosenCondition != nil ? " (chosen)" : ""), \(applied.count) display(s)")
                 // This update may have cleared a renderer failure, which kept the live sky off.
                 refreshLive()
                 live.show(LiveScene(weather: weather, date: job.date), on: applied)
@@ -511,14 +521,34 @@ final class LiveSkyController: ObservableObject {
         settings.locationMode == .manual ? "manual:\(settings.manualPlace?.displayName ?? "")" : "system"
     }
 
+    /// Whether the last render shows the weather chosen now: the chosen condition, or the real weather.
+    private var lastRenderShowsChoice: Bool { state.lastWeather?.chosenCondition == settings.weatherOverride }
+
     private func reusableSource() -> CGImage? {
         guard let path = state.lastSourcePath, let date = state.lastSourceDate, state.lastSourcePlace == placeKey,
-              Date().timeIntervalSince(date) < settings.updateInterval,
+              lastRenderShowsChoice, Date().timeIntervalSince(date) < settings.updateInterval,
               case .success(let image) = ImageTools.loadValidatedSource(URL(fileURLWithPath: path)) else { return nil }
         return image
     }
 
     private func fetchWeather() async throws -> WeatherSnapshot {
+        let weather = try await fetchRealWeather()
+        return withChosenCondition(weather)
+    }
+
+    /// A weather chosen in Settings replaces the real condition, with the cloud cover held inside that
+    /// condition's band. The place, temperature, wind, sun times and the moon stay real.
+    private func withChosenCondition(_ weather: WeatherSnapshot) -> WeatherSnapshot {
+        guard let chosen = settings.weatherOverride else { return weather }
+        var shown = weather
+        shown.condition = chosen
+        shown.conditionSource = WeatherChoice.source
+        shown.cloudCover = WeatherShortcut.cloudCover(weather.cloudCover, for: chosen)
+        Log.info("weather: showing \(chosen), chosen in Settings, instead of \(weather.condition); cloud \(Int(shown.cloudCover * 100))%")
+        return shown
+    }
+
+    private func fetchRealWeather() async throws -> WeatherSnapshot {
         let client = OpenMeteo(simulateOffline: settings.debug.simulateOffline)
         switch settings.locationMode {
         case .manual?:
@@ -777,7 +807,8 @@ final class LiveSkyController: ObservableObject {
     /// At launch the live sky starts from the last render if it is recent, while the first update runs.
     private func showLastSceneIfFresh() {
         guard let weather = state.lastWeather, let date = state.lastSourceDate, state.failure == nil, !state.restored,
-              state.lastSourcePlace == placeKey, Date().timeIntervalSince(date) < settings.updateInterval else { return }
+              state.lastSourcePlace == placeKey, lastRenderShowsChoice,
+              Date().timeIntervalSince(date) < settings.updateInterval else { return }
         live.show(LiveScene(weather: weather, date: date), on: Displays.current())
     }
 

@@ -18,6 +18,7 @@
 "status.nextRetry" = "Trying again at %@";
 "status.paused" = "Updates paused";
 "status.restored" = "Original wallpaper restored; updates paused";
+"status.chosen" = "%@ (chosen)";
 
 /* Renderer failures */
 "failure.check" = "Compatibility check failed: %@";
@@ -80,6 +81,10 @@
 "settings.city.selected" = "Selected: %@";
 "settings.city.none" = "No matching cities";
 "settings.city.error" = "Search failed: %@";
+"settings.weather" = "Weather";
+"settings.weather.show" = "Show";
+"settings.weather.automatic" = "Automatic";
+"settings.weather.note" = "Automatic follows the real weather. Choose a condition to show it instead, whatever the weather outside; the time of day, the sun and the moon stay real.";
 "settings.updates" = "Updates";
 "settings.interval" = "Update every";
 "settings.minutes" = "%ld minutes";
@@ -113,7 +118,7 @@
 "condition.heavySnow" = "Heavy Snow";
 "condition.thunderstorms" = "Thunderstorms";
 "condition.strongStorms" = "Strong Storms";
-/* Only Apple Weather (the LiveSky Weather shortcut) reports these. */
+/* Only Apple Weather (the LiveSky Weather shortcut) reports these. Every condition can be chosen in Settings. */
 "condition.mostlyCloudy" = "Mostly Cloudy";
 "condition.haze" = "Haze";
 "condition.smoky" = "Smoke";

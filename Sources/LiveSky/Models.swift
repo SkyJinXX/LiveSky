@@ -68,6 +68,8 @@ struct Settings: Codable, Equatable {
     var liveCapOnBattery = LiveCap.fps12
     /// With "Use my location": take the condition from the LiveSky Weather shortcut (Apple Weather).
     var useWeatherShortcut = false
+    /// A condition from `WeatherChoice.all` to show instead of the real one; nil shows the real weather.
+    var weatherOverride: String?
     var debug = DebugOptions()
 
     init() {}
@@ -85,6 +87,10 @@ struct Settings: Codable, Equatable {
         liveCapOnPower = (try? c.decodeIfPresent(LiveCap.self, forKey: .liveCapOnPower)) ?? .fps60
         liveCapOnBattery = (try? c.decodeIfPresent(LiveCap.self, forKey: .liveCapOnBattery)) ?? .fps12
         useWeatherShortcut = try c.decodeIfPresent(Bool.self, forKey: .useWeatherShortcut) ?? false
+        // The renderer takes an unknown condition for an incompatible macOS, so only known ones are kept.
+        weatherOverride = try c.decodeIfPresent(String.self, forKey: .weatherOverride).flatMap {
+            WeatherChoice.all.contains($0) ? $0 : nil
+        }
         debug = try c.decodeIfPresent(DebugOptions.self, forKey: .debug) ?? DebugOptions()
     }
 
@@ -101,7 +107,8 @@ struct WeatherSnapshot: Codable, Equatable {
     var timeZone: String
     var weatherCode: Int
     var condition: String
-    /// Set when `condition` is not Open-Meteo's weather code: the shortcut it came from.
+    /// Set when `condition` is not Open-Meteo's weather code: the shortcut it came from, or
+    /// `WeatherChoice.source` when it was chosen in Settings.
     var conditionSource: String?
     var temperatureCelsius: Double?
     var cloudCover: Double
@@ -109,6 +116,26 @@ struct WeatherSnapshot: Codable, Equatable {
     var observed: Date
     var sunrise: Date?
     var sunset: Date?
+
+    /// The condition chosen in Settings that this weather shows, or nil for the real weather.
+    var chosenCondition: String? { conditionSource == WeatherChoice.source ? condition : nil }
+}
+
+/// The weather one can choose in Settings to show instead of the real one: every WeatherKit
+/// condition, each named in Localizable.strings as "condition.<raw value>", grouped for the menu.
+enum WeatherChoice {
+    static let groups: [[String]] = [
+        ["clear", "mostlyClear", "partlyCloudy", "mostlyCloudy", "cloudy"],
+        ["foggy", "haze", "smoky", "blowingDust", "breezy", "windy"],
+        ["drizzle", "rain", "heavyRain", "sunShowers"],
+        ["freezingDrizzle", "freezingRain", "sleet", "wintryMix", "hail"],
+        ["flurries", "sunFlurries", "snow", "heavySnow", "blowingSnow", "blizzard"],
+        ["isolatedThunderstorms", "scatteredThunderstorms", "thunderstorms", "strongStorms", "tropicalStorm", "hurricane"],
+        ["hot", "frigid"],
+    ]
+    static let all = groups.flatMap { $0 }
+    /// `WeatherSnapshot.conditionSource` of a chosen condition.
+    static let source = "chosen"
 }
 
 /// A renderer or image-validation failure. These are treated as "this macOS version is not

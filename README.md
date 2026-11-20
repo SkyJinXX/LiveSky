@@ -44,6 +44,10 @@ LiveSky's weather comes from Open-Meteo's forecast models. They sometimes miss a
 
 The shortcut gets the current weather where you are and passes its condition (Rain, Cloudy and so on) to LiveSky, which understands it in whatever language your Mac uses (on macOS 15.4 or later; before that, English and Chinese). Clouds, wind and sunrise still come from Open-Meteo, and when the shortcut fails LiveSky goes back to Open-Meteo by itself. It isn't used when you choose a city.
 
+## Choose the weather
+
+To show a weather of your choice instead of the real one, open **Settings…** and pick it under **Weather → Show**: snow on a summer afternoon, a thunderstorm, fog. All 34 of Apple Weather's conditions are there, and the wallpaper and the live sky change together on every display. The time of day, the sun and the moon stay real, and the menu marks the weather as chosen. **Automatic** brings the real weather back straight away.
+
 ## Compatibility
 
 LiveSky needs a Mac with Apple silicon.

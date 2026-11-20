@@ -15,7 +15,9 @@ extension LiveSkyController {
         }
         if AppLocation.isTranslocated { lines.append(L("error.translocated")) }
         if let weather = state.lastWeather {
-            var line = "\(weather.placeName) · \(L("condition.\(weather.condition)"))"
+            let condition = L("condition.\(weather.condition)")
+            // A weather chosen in Settings is marked, so it isn't taken for the weather outside.
+            var line = "\(weather.placeName) · \(weather.chosenCondition != nil ? L("status.chosen", condition) : condition)"
             if let celsius = weather.temperatureCelsius {
                 // Converted to the user's preferred unit (°F in the US), shown as "81°".
                 line += " · " + Measurement(value: celsius, unit: UnitTemperature.celsius).formatted(
